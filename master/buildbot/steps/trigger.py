@@ -163,41 +163,25 @@ class Trigger(ResumeBuild):
 
         self.running = True
 
-        props_to_set = self.createTriggerProperties()
-
-        ss_for_trigger = self.prepareSourcestampListForTrigger()
-
-        dl = []
-        triggered_names = []
-        triggeredbybrid = None
-        try:
-            triggeredbybrid = self.build.requests[0].id
-        except TypeError as e:
-            log.msg("Warning: check self.build.requests type expecting a list, trigger.py \n%s" % e.message)
-
-        for sch in triggered_schedulers:
-            dl.append(sch.trigger(ss_for_trigger, set_props=props_to_set, triggeredbybrid=triggeredbybrid, reason=self.build.build_status.getReason()))
-            triggered_names.append("'%s'" % sch.name)
-        self.step_status.setText(['Triggered:'] + triggered_names)
+        dl = self._triggerSchedulers(triggered_schedulers)
 
         if self.waitForFinish:
             rclist = yield defer.DeferredList(dl, consumeErrors=True)
-
         else:
             # do something to handle errors
             for d in dl:
                 d.addErrback(log.err,
                     '(ignored) while invoking Triggerable schedulers:')
-            rclist = None
             self.finishIfRunning(SUCCESS)
             return
 
         was_exception = was_failure = False
-        brids = {}
+        triggeredBuildIdsToBuildNames = {}
         for was_cb, results in rclist:
             if isinstance(results, tuple):
                 results, some_brids = results
-                brids.update(some_brids)
+                for _buildName, _buildRequestId in some_brids.iteritems():
+                    triggeredBuildIdsToBuildNames[_buildRequestId] = _buildName
 
             if not was_cb:
                 was_exception = True
@@ -214,9 +198,10 @@ class Trigger(ResumeBuild):
             result = self.checkDisconection(result, results)
 
         else:
-            result = results if results in (SUCCESS, WARNINGS, FAILURE, SKIPPED, EXCEPTION, RETRY, CANCELED) else SUCCESS
+            result = results if results in (
+            SUCCESS, WARNINGS, FAILURE, SKIPPED, EXCEPTION, RETRY, CANCELED) else SUCCESS
 
-        if brids:
+        if triggeredBuildIdsToBuildNames:
             master = self.build.builder.botmaster.parent
 
             def getBuildResults(build):
@@ -226,39 +211,27 @@ class Trigger(ResumeBuild):
 
             @defer.inlineCallbacks
             def add_links_multimaster(res):
-                # reverse the dictionary lookup for brid to builder name
-                brid_to_bn = dict((_brid,_bn) for _bn,_brid in brids.iteritems())
                 for was_cb, builddicts in res:
                     if was_cb:
                         for build in builddicts:
-                            bn = brid_to_bn[build['brid']]
-                            builder = master.getStatus().getBuilder(bn)
-                            if builder is not None:
-                                friendly_name = builder.friendly_name
-                            else:
-                                friendly_name = None
+                            bn = triggeredBuildIdsToBuildNames[build['brid']]
+                            friendly_name = self._getFriendlyName(master, bn)
                             num = build['number']
                             url = yield master.status.getURLForBuildRequest(build['brid'], bn, num,
                                                                             friendly_name, self.sourceStamps)
                             self.step_status.addURL(url['text'], url['path'], *getBuildResults(build))
-            
+
             def add_links(res):
-                # reverse the dictionary lookup for brid to builder name
-                brid_to_bn = dict((_brid,_bn) for _bn,_brid in brids.iteritems())
                 for was_cb, builddicts in res:
                     if was_cb:
                         for build in builddicts:
-                            bn = brid_to_bn[build['brid']]
-                            builder = master.getStatus().getBuilder(bn)
-                            if builder is not None:
-                                friendly_name = builder.friendly_name
-                            else:
-                                friendly_name = None
+                            bn = triggeredBuildIdsToBuildNames[build['brid']]
+                            friendly_name = self._getFriendlyName(master, bn)
                             num = build['number']
                             url = master.status.getURLForBuild(bn, num, friendly_name, self.sourceStamps)
                             self.step_status.addURL(url['text'], url['path'], *getBuildResults(build))
 
-            builddicts = [master.db.builds.getBuildsAndResultForRequest(br) for br in brids.values()]
+            builddicts = [master.db.builds.getBuildsAndResultForRequest(br) for br in triggeredBuildIdsToBuildNames.keys()]
             res_builds = yield defer.DeferredList(builddicts, consumeErrors=True)
             if master.config.multiMaster:
                 yield add_links_multimaster(res_builds)
@@ -270,3 +243,33 @@ class Trigger(ResumeBuild):
         return
 
 
+    def _getFriendlyName(self, master, buildNumber):
+        builder = master.getStatus().getBuilder(buildNumber)
+        if builder is not None:
+            return builder.friendly_name
+        else:
+            return None
+
+
+    def _triggerSchedulers(self, triggered_schedulers):
+        dl = []
+        triggered_names = []
+        triggeredByBuildRequestId = self._triggeredByBuildRequestId()
+        propertiesToSet = self.createTriggerProperties()
+        ss_for_trigger = self.prepareSourcestampListForTrigger()
+
+        for sch in triggered_schedulers:
+            dl.append(sch.trigger(ss_for_trigger, set_props=propertiesToSet, triggeredbybrid=triggeredByBuildRequestId,
+                reason=self.build.build_status.getReason()))
+            triggered_names.append("'%s'" % sch.name)
+        self.step_status.setText(['Triggered:'] + triggered_names)
+        return dl
+
+
+    def _triggeredByBuildRequestId(self):
+        triggeredbybrid = None
+        try:
+            triggeredbybrid = self.build.requests[0].id
+        except TypeError as e:
+            log.msg("Warning: check self.build.requests type expecting a list, trigger.py \n%s" % e.message)
+        return triggeredbybrid
