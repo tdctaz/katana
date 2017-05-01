@@ -19,7 +19,7 @@ from buildbot.steps.trigger import Trigger
 class PartitionTrigger(Trigger):
     name = "PartitionTrigger"
 
-    # Same arguments as the Trigger but also a partition function that determins how many times each build should be
+    # Same arguments as the Trigger but also a partition function that determines how many times each build should be
     # triggered scheduler should be triggered.
     def __init__(self, partitionFunction, **kwargs):
         if not partitionFunction:
@@ -30,17 +30,22 @@ class PartitionTrigger(Trigger):
 
     def _triggerSchedulers(self, triggered_schedulers):
         dl = []
-        triggered_names = []
+        triggeredNames = []
         triggeredByBuildRequestId = self._triggeredByBuildRequestId()
-        ss_for_trigger = self.prepareSourcestampListForTrigger()
+        sourceStampForTrigger = self.prepareSourcestampListForTrigger()
 
         for sch in triggered_schedulers:
             for partition in self.partitionFunction(self, sch):
-                propertiesToSetForPartition = self.createTriggerProperties()
-                for key, value in partition.iteritems():
-                    propertiesToSetForPartition.setProperty(key, value, "PartitionTrigger")
-                dl.append(sch.trigger(ss_for_trigger, set_props=propertiesToSetForPartition, triggeredbybrid=triggeredByBuildRequestId, reason=self.build.build_status.getReason()))
-            triggered_names.append("'%s'" % sch.name)
+                propertiesToSetForPartition = self._createPartitionTriggerProperties(partition)
+                dl.append(sch.trigger(sourceStampForTrigger, set_props=propertiesToSetForPartition,
+                    triggeredbybrid=triggeredByBuildRequestId, reason=self.build.build_status.getReason()))
+                triggeredNames.append("'%s'" % sch.name)
 
-        self.step_status.setText(['Triggered:'] + triggered_names)
+        self.step_status.setText(['Triggered:'] + triggeredNames)
         return dl
+
+    def _createPartitionTriggerProperties(self, partitionProperties):
+        propertiesToSetForPartition = self.createTriggerProperties()
+        for key, value in partitionProperties.iteritems():
+            propertiesToSetForPartition.setProperty(key, value, "PartitionTrigger")
+        return propertiesToSetForPartition
