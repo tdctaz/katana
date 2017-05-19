@@ -385,6 +385,10 @@ class DownloadArtifact(ShellCommand):
         triggeredbybrid = self.build.requests[0].id
         br = yield self.master.db.buildrequests.getBuildRequestTriggered(triggeredbybrid, self.artifactBuilderName)
 
+        if br is None:
+            id = yield self.master.db.buildrequests.getTriggeredById(self.build.requests[0].id)
+            br = yield self.master.db.buildrequests.getBuildRequestById(id)
+
         if br["submitted_at"] > ARTIFACT_LOCATION_CHANGE_DATE:
             artifactPath  = "%s/%s_%s" % (safeTranslate(self.artifactBuilderName),
                                           br['brid'], FormatDatetime(br["submitted_at"]))

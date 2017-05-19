@@ -755,6 +755,47 @@ class BuildRequestsConnectorComponent(base.DBConnectorComponent):
 
         return self.db.pool.do(thd)
 
+    def getBuildRequestById(self, id):
+        def thd(conn):
+            buildrequests_tbl = self.db.model.buildrequests
+
+            stmt_br = sa.select([buildrequests_tbl]) \
+                .where(buildrequests_tbl.c.id == id)
+
+            res = conn.execute(stmt_br)
+            row = res.fetchone()
+            buildrequest = None
+            if row:
+                submitted_at = mkdt(row.submitted_at)
+                complete_at = mkdt(row.complete_at)
+                buildrequest = dict(brid=row.id, buildsetid=row.buildsetid,
+                                    buildername=row.buildername, priority=row.priority,
+                                    complete=bool(row.complete), results=row.results,
+                                    submitted_at=submitted_at, complete_at=complete_at, artifactbrid=row.artifactbrid)
+
+            res.close()
+            return buildrequest
+
+        return self.db.pool.do(thd)
+
+    def getTriggeredById(self, id):
+        def thd(conn):
+            buildrequests_tbl = self.db.model.buildrequests
+
+            stmt_br = sa.select([buildrequests_tbl]) \
+                .where(buildrequests_tbl.c.id == id)
+
+            res = conn.execute(stmt_br)
+            row = res.fetchone()
+            triggeredbybrid = None
+            if row:
+                triggeredbybrid = row.triggeredbybrid
+
+            res.close()
+            return triggeredbybrid
+
+        return self.db.pool.do(thd)
+
     def getBuildRequestsTriggeredByScheduler(self, schedulername, stepname, triggeredbybrid):
         def thd(conn):
             buildrequests_tbl = self.db.model.buildrequests
