@@ -5,6 +5,7 @@ import re
 from buildbot.util import epoch2datetime
 from buildbot.util import safeTranslate
 from buildbot.process.slavebuilder import IDLE, BUILDING
+from buildbot.process.buildrequest import BuildRequest
 from buildbot.steps.resumebuild import ResumeBuild, ShellCommandResumeBuild
 
 # Change artifact location in August
@@ -64,34 +65,60 @@ class FindPreviousSuccessfulBuild(ResumeBuild):
             self.finished(SKIPPED)
             return
 
-        prevBuildRequest = yield self.master.db.buildrequests\
-            .getBuildRequestBySourcestamps(buildername=self.build.builder.config.name,
-                                           sourcestamps=self.build_sourcestamps)
-
-        if prevBuildRequest:
-            build_list = yield self.master.db.builds.getBuildsForRequest(prevBuildRequest['brid'])
-            # there can be many builds per buildrequest for example (retry) when slave lost connection
-            # in this case we will display all the builds related to this build request
-            for build in build_list:
-                build_num = build['number']
-                friendly_name = self.build.builder.builder_status.getFriendlyName()
-                url = yield self.master.status.getURLForBuildRequest(prevBuildRequest['brid'],
-                                                                     self.build.builder.config.name, build_num,
-                                                                     friendly_name, self.build_sourcestamps)
-                self.addURL(url['text'], url['path'])
-            # we are not building but reusing a previous build
-            reuse = yield self.master.db.buildrequests.reusePreviousBuild(self.build.requests, prevBuildRequest['brid'])
-            self.step_status.setText(["Found previous successful build."])
-            self.step_status.stepFinished(SUCCESS)
-            self.build.result = SUCCESS
-            self.build.setProperty("reusedOldBuild", True)
-            self.build.allStepsDone()
-            self.resumeBuild = False
-        else:
+        mergeRequestFn = self.build.builder.getAssignedMergeRequestsFn()
+        if (mergeRequestFn == False):
+            self.step_status.setText(["Skipping previous build check (configured to not merge)."])
             if len(self.build.requests) > 1:
                 yield self.master.db.buildrequests.updateMergedBuildRequest(self.build.requests)
-            self.step_status.setText(["Running build (previous sucessful build not found)."])
+            self.finished(SKIPPED)
+            return
+        elif (mergeRequestFn != True):
+            prevBuildRequests = yield self.master.db.buildrequests \
+                .getBuildRequestsBySourcestamps(buildername=self.build.builder.config.name,
+                                                sourcestamps = self.build_sourcestamps,
+                                                limit=20)
+            for prevBuildRequest in prevBuildRequests:
+                previousBuildRequestDict = yield self.master.db.buildrequests.getBuildRequest(prevBuildRequest['brid'])
+                req2 = yield BuildRequest.fromBrdict(self.master, previousBuildRequestDict)
+                if (mergeRequestFn(self.build.builder, self.build.requests[0], req2)):
+                    yield self._previousBuildFound(prevBuildRequest)
+                    return
+        else:
+            prevBuildRequest = yield self.master.db.buildrequests \
+                .getBuildRequestBySourcestamps(buildername=self.build.builder.config.name,
+                                               sourcestamps=self.build_sourcestamps)
 
+            if prevBuildRequest:
+                yield self._previousBuildFound(prevBuildRequest)
+                return
+
+        if len(self.build.requests) > 1:
+           yield self.master.db.buildrequests.updateMergedBuildRequest(self.build.requests)
+        self.step_status.setText(["Running build (previous sucessful build not found)."])
+        self.finished(SUCCESS)
+        return
+
+    @defer.inlineCallbacks
+    def _previousBuildFound(self, prevBuildRequest):
+        build_list = yield self.master.db.builds.getBuildsForRequest(prevBuildRequest['brid'])
+        # there can be many builds per buildrequest for example (retry) when slave lost connection
+        # in this case we will display all the builds related to this build request
+
+        for build in build_list:
+            build_num = build['number']
+            friendly_name = self.build.builder.builder_status.getFriendlyName()
+            url = yield self.master.status.getURLForBuildRequest(prevBuildRequest['brid'],
+                                                                 self.build.builder.config.name, build_num,
+                                                                 friendly_name, self.build_sourcestamps)
+            self.addURL(url['text'], url['path'])
+        # we are not building but reusing a previous build
+        reuse = yield self.master.db.buildrequests.reusePreviousBuild(self.build.requests, prevBuildRequest['brid'])
+        self.step_status.setText(["Found previous successful build."])
+        self.step_status.stepFinished(SUCCESS)
+        self.build.result = SUCCESS
+        self.build.setProperty("reusedOldBuild", True)
+        self.build.allStepsDone()
+        self.resumeBuild = False
         self.finished(SUCCESS)
         return
 
