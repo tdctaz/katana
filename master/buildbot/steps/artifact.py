@@ -4,6 +4,7 @@ from buildbot.steps.shell import ShellCommand
 import re
 from buildbot.util import epoch2datetime
 from buildbot.util import safeTranslate
+from buildbot.process import properties
 from buildbot.process.slavebuilder import IDLE, BUILDING
 from buildbot.process.buildrequest import BuildRequest
 from buildbot.steps.resumebuild import ResumeBuild, ShellCommandResumeBuild
@@ -65,25 +66,14 @@ class FindPreviousSuccessfulBuild(ResumeBuild):
             self.finished(SKIPPED)
             return
 
-        mergeRequestFn = self.build.builder.getAssignedMergeRequestsFn()
-        if (mergeRequestFn == False):
+        mergeRequestFn = self.build.builder.getConfiguredMergeRequestsFn()
+        if mergeRequestFn == False:
             self.step_status.setText(["Skipping previous build check (configured to not merge)."])
             if len(self.build.requests) > 1:
                 yield self.master.db.buildrequests.updateMergedBuildRequest(self.build.requests)
             self.finished(SKIPPED)
             return
-        elif (mergeRequestFn != True):
-            prevBuildRequests = yield self.master.db.buildrequests \
-                .getBuildRequestsBySourcestamps(buildername=self.build.builder.config.name,
-                                                sourcestamps = self.build_sourcestamps,
-                                                limit=20)
-            for prevBuildRequest in prevBuildRequests:
-                previousBuildRequestDict = yield self.master.db.buildrequests.getBuildRequest(prevBuildRequest['brid'])
-                req2 = yield BuildRequest.fromBrdict(self.master, previousBuildRequestDict)
-                if (mergeRequestFn(self.build.builder, self.build.requests[0], req2)):
-                    yield self._previousBuildFound(prevBuildRequest)
-                    return
-        else:
+        elif mergeRequestFn == True: # Default case, with no merge function assigned
             prevBuildRequest = yield self.master.db.buildrequests \
                 .getBuildRequestBySourcestamps(buildername=self.build.builder.config.name,
                                                sourcestamps=self.build_sourcestamps)
@@ -91,12 +81,39 @@ class FindPreviousSuccessfulBuild(ResumeBuild):
             if prevBuildRequest:
                 yield self._previousBuildFound(prevBuildRequest)
                 return
+        else: # Custom merge function assigned
+            prevBuildRequests = yield self.master.db.buildrequests \
+                .getBuildRequestsBySourcestamps(buildername=self.build.builder.config.name,
+                                                sourcestamps = self.build_sourcestamps,
+                                                limit=20)
+            if len(prevBuildRequests) > 0:
+                req1 = self.build.requests[0]
+                for prevBuildRequest in prevBuildRequests:
+                    req2 = yield self._getBuildRequest(self.master, prevBuildRequest, req1.sources)
+                    if (mergeRequestFn(self.build.builder, req1, req2)):
+                        yield self._previousBuildFound(prevBuildRequest)
+                        return
 
         if len(self.build.requests) > 1:
            yield self.master.db.buildrequests.updateMergedBuildRequest(self.build.requests)
         self.step_status.setText(["Running build (previous sucessful build not found)."])
         self.finished(SUCCESS)
         return
+
+    # A more light weight function for making a build request, it uses as much of the information we already have to
+    # make a build request - so we only need to fetch the properties
+    @defer.inlineCallbacks
+    def _getBuildRequest(self, master, brdict, sources):
+
+        # fetch the buildset to get the reason
+        buildset = yield master.db.buildsets.getBuildset(brdict['buildsetid'])
+        assert buildset # schema should guarantee this
+
+        # fetch the buildset properties, and convert to Properties
+        buildset_properties = yield master.db.buildsets.getBuildsetProperties(brdict['buildsetid'])
+        props = properties.Properties.fromDict(buildset_properties)
+
+        defer.returnValue(BuildRequest.makeBuildRequest(master, brdict, buildset, props, sources))
 
     @defer.inlineCallbacks
     def _previousBuildFound(self, prevBuildRequest):

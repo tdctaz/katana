@@ -115,10 +115,9 @@ class BuildRequest(object):
         return d
 
     @classmethod
-    @defer.inlineCallbacks
-    def _make_br(cls, brid, brdict, master):
+    def makeBuildRequest(cls, master, brdict, buildset, props, sources):
         buildrequest = cls()
-        buildrequest.id = brid
+        buildrequest.id = brdict['brid']
         buildrequest.bsid = brdict['buildsetid']
         buildrequest.buildername = brdict['buildername']
         buildrequest.priority = brdict['priority']
@@ -129,30 +128,37 @@ class BuildRequest(object):
         def getBuilChainID():
             if 'startbrid' in brdict and brdict['startbrid'] is not None:
                 return brdict['startbrid']
-            return brid
+            return brdict['brid']
 
         buildrequest.buildChainID = getBuilChainID()
         buildrequest.slavepool = brdict['slavepool'] if 'slavepool' in brdict else None
         buildrequest.results = brdict['results'] if 'results' in brdict and brdict['results'] is not None else None
+        buildrequest.reason = buildset['reason']
+        buildrequest.properties = props
+        buildrequest.sources = sources
+        if buildrequest.sources:
+            buildrequest.source = buildrequest.sources.values()[0]
+        return buildrequest
 
+    @classmethod
+    @defer.inlineCallbacks
+    def _make_br(cls, brid, brdict, master):
         # fetch the buildset to get the reason
         buildset = yield master.db.buildsets.getBuildset(brdict['buildsetid'])
         assert buildset # schema should guarantee this
-        buildrequest.reason = buildset['reason']
 
         # fetch the buildset properties, and convert to Properties
         buildset_properties = yield master.db.buildsets.getBuildsetProperties(brdict['buildsetid'])
-
-        buildrequest.properties = properties.Properties.fromDict(buildset_properties)
+        props = properties.Properties.fromDict(buildset_properties)
 
         # fetch the sourcestamp dictionary
         sslist = yield  master.db.sourcestamps.getSourceStamps(buildset['sourcestampsetid'])
         assert len(sslist) > 0, "Empty sourcestampset: db schema enforces set to exist but cannot enforce a non empty set"
 
         # and turn it into a SourceStamps
-        buildrequest.sources = {}
+        sources = {}
         def store_source(source):
-            buildrequest.sources[source.codebase] = source
+            sources[source.codebase] = source
 
         dlist = []
         for ssdict in sslist:
@@ -162,9 +168,7 @@ class BuildRequest(object):
 
         yield defer.gatherResults(dlist)
 
-        if buildrequest.sources:
-            buildrequest.source = buildrequest.sources.values()[0]
-
+        buildrequest = cls.makeBuildRequest(master, brdict, buildset, props, sources)
         defer.returnValue(buildrequest)
 
     def requestsHaveSameCodebases(self, other):

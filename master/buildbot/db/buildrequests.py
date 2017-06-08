@@ -499,6 +499,7 @@ class BuildRequestsConnectorComponent(base.DBConnectorComponent):
         def thd(conn):
             sourcestampsets_tbl = self.db.model.sourcestampsets
             sourcestamps_tbl = self.db.model.sourcestamps
+            claims_tbl = self.db.model.buildrequest_claims
             buildrequests_tbl = self.db.model.buildrequests
             buildsets_tbl = self.db.model.buildsets
 
@@ -507,29 +508,25 @@ class BuildRequestsConnectorComponent(base.DBConnectorComponent):
                                                                   sourcestampsets_tbl=sourcestampsets_tbl,
                                                                   buildsets_tbl=buildsets_tbl)
 
-            q = sa.select(columns=[buildrequests_tbl]) \
+            q = sa.select([buildrequests_tbl, claims_tbl]) \
                 .where(buildrequests_tbl.c.buildsetid.in_(stmt)) \
                 .where(buildrequests_tbl.c.complete == 1) \
                 .where(buildrequests_tbl.c.results == 0) \
                 .where(buildrequests_tbl.c.buildername == buildername) \
                 .where(buildrequests_tbl.c.artifactbrid == None) \
+                .select_from(buildrequests_tbl.outerjoin(claims_tbl, (buildrequests_tbl.c.id == claims_tbl.c.brid))) \
                 .order_by(sa.desc(buildrequests_tbl.c.id)) \
                 .limit(limit)
 
             res = conn.execute(q)
             rows = res.fetchall()
-            buildrequests = []
+            build_requests = []
             for row in rows:
-                submitted_at = mkdt(row.submitted_at)
-                complete_at = mkdt(row.complete_at)
-                buildrequest = dict(brid=row.id, buildsetid=row.buildsetid,
-                                    buildername=row.buildername, priority=row.priority,
-                                    complete=bool(row.complete), results=row.results,
-                                    submitted_at=submitted_at, complete_at=complete_at, artifactbrid=row.artifactbrid)
-                buildrequests.append(buildrequest)
+                buildrequest = self._brdictFromRow(row, None)
+                build_requests.append(buildrequest)
 
             res.close()
-            return buildrequests
+            return build_requests
 
         return self.db.pool.do(thd)
 

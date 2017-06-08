@@ -651,7 +651,7 @@ class Builder(config.ReconfigurableServiceMixin,
         build_started = yield self._startBuildFor(slavebuilder, breqs)
         defer.returnValue(build_started)
 
-    def getAssignedMergeRequestsFn(self):
+    def getConfiguredMergeRequestsFn(self):
         mergeRequests_fn = self.config.mergeRequests
         if mergeRequests_fn is None:
             mergeRequests_fn = self.master.config.mergeRequests
@@ -663,7 +663,7 @@ class Builder(config.ReconfigurableServiceMixin,
         """Helper function to determine which mergeRequests function to use
         from L{_mergeRequests}, or None for no merging"""
         # first, seek through builder, global, and the default
-        mergeRequests_fn = self.getAssignedMergeRequestsFn()
+        mergeRequests_fn = self.getConfiguredMergeRequestsFn()
 
         # then translate False and True properly
         if mergeRequests_fn is False:
