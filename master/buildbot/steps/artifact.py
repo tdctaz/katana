@@ -84,8 +84,7 @@ class FindPreviousSuccessfulBuild(ResumeBuild):
         else: # Custom merge function assigned
             prevBuildRequests = yield self.master.db.buildrequests \
                 .getBuildRequestsBySourcestamps(buildername=self.build.builder.config.name,
-                                                sourcestamps = self.build_sourcestamps,
-                                                limit=20)
+                                                sourcestamps = self.build_sourcestamps)
             if len(prevBuildRequests) > 0:
                 req1 = self.build.requests[0]
                 for prevBuildRequest in prevBuildRequests:

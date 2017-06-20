@@ -495,7 +495,7 @@ class BuildRequestsConnectorComponent(base.DBConnectorComponent):
 
         return self.db.pool.do(thd)
 
-    def getBuildRequestsBySourcestamps(self, buildername=None, sourcestamps=None, limit=20):
+    def getBuildRequestsBySourcestamps(self, buildername=None, sourcestamps=None):
         def thd(conn):
             sourcestampsets_tbl = self.db.model.sourcestampsets
             sourcestamps_tbl = self.db.model.sourcestamps
@@ -515,8 +515,7 @@ class BuildRequestsConnectorComponent(base.DBConnectorComponent):
                 .where(buildrequests_tbl.c.buildername == buildername) \
                 .where(buildrequests_tbl.c.artifactbrid == None) \
                 .select_from(buildrequests_tbl.outerjoin(claims_tbl, (buildrequests_tbl.c.id == claims_tbl.c.brid))) \
-                .order_by(sa.desc(buildrequests_tbl.c.id)) \
-                .limit(limit)
+                .order_by(sa.desc(buildrequests_tbl.c.id))
 
             res = conn.execute(q)
             rows = res.fetchall()
