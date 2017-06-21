@@ -35,13 +35,22 @@ class PartitionTrigger(Trigger):
         sourceStampForTrigger = self.prepareSourcestampListForTrigger()
 
         for sch in triggered_schedulers:
-            for partition in self.partitionFunction(self, sch):
+            partitions = self.partitionFunction(self, sch)
+            partitionCount = 0
+            for partition in partitions:
                 propertiesToSetForPartition = self._createPartitionTriggerProperties(partition)
                 dl.append(sch.trigger(sourceStampForTrigger, set_props=propertiesToSetForPartition,
                     triggeredbybrid=triggeredByBuildRequestId, reason=self.build.build_status.getReason()))
-                triggeredNames.append("'%s'" % sch.name)
+                partitionCount += 1
+            if partitionCount > 0:
+                triggeredNames.append("'%s' (split into %d partitions)" % (sch.name, partitionCount))
 
-        self.step_status.setText(['Triggered:'] + triggeredNames)
+        if len(triggeredNames) > 0:
+            statusText = "Triggered: %s" % ", ".join(triggeredNames)
+            self.step_status.setText(statusText)
+        else:
+            self.step_status.setText("Zero partitions returned, nothing has been triggered")
+
         return dl
 
     def _createPartitionTriggerProperties(self, partitionProperties):

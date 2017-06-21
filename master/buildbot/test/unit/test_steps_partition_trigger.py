@@ -29,19 +29,18 @@ BRID_TO_BSID = lambda brid: brid+2000
 BRID_TO_BID  = lambda brid: brid+3000
 BRID_TO_BUILD_NUMBER = lambda brid: brid+4000
 
-class FakeTriggerable(object):
+class FakeTriggerable():
     implements(interfaces.ITriggerableScheduler)
-
-    triggered_with = None
-    result = SUCCESS
-    brids = {}
-    exception = False
 
     def __init__(self, name):
         self.name = name
+        self.triggered_with = []
+        self.result = SUCCESS
+        self.brids = {}
+        self.exception = False
 
     def trigger(self, sourcestamps = None, set_props=None, triggeredbybrid=None, reason=None):
-        self.triggered_with = (sourcestamps, set_props.properties, triggeredbybrid)
+        self.triggered_with.append((sourcestamps, set_props.properties, triggeredbybrid))
         d = defer.Deferred()
         if self.exception:
             reactor.callLater(0, d.errback, RuntimeError('oh noes'))
@@ -56,8 +55,10 @@ class TestPartitionTrigger(steps.BuildStepMixin, unittest.TestCase):
     def tearDown(self):
         return self.tearDownBuildStep()
 
-    def expectTriggeredWith(self, a=None, b=None):
+    def aExpectTriggeredWith(self, a):
         self.exp_a_trigger = a
+
+    def bExpectTriggeredWith(self, b):
         self.exp_b_trigger = b
 
     def setupStep(self, step, sourcestampsInBuild=None, gotRevisionsInBuild=None, *args, **kwargs):
@@ -76,14 +77,14 @@ class TestPartitionTrigger(steps.BuildStepMixin, unittest.TestCase):
         m.status = master.Status(m)
         m.config.buildbotURL = "baseurl/"
 
-        self.scheduler_a = a = FakeTriggerable(name='a')
-        self.scheduler_b = b = FakeTriggerable(name='b')
+        self.scheduler_a = FakeTriggerable(name='a')
+        self.scheduler_b = FakeTriggerable(name='b')
         def allSchedulers():
-            return [ a, b ]
+            return [ self.scheduler_a, self.scheduler_b ]
         m.allSchedulers = allSchedulers
 
-        a.brids = {'A': 11}
-        b.brids = {'B': 22}
+        self.scheduler_a.brids = {'A': 11}
+        self.scheduler_b.brids = {'B': 22}
 
         make_fake_br = lambda brid, name: fakedb.BuildRequest(id=brid,
                                                               buildsetid=BRID_TO_BSID(brid),
@@ -112,8 +113,8 @@ class TestPartitionTrigger(steps.BuildStepMixin, unittest.TestCase):
         self.build.requests = [request]
 
         self.exp_add_sourcestamp = None
-        self.exp_a_trigger = None
-        self.exp_b_trigger = None
+        self.exp_a_trigger = []
+        self.exp_b_trigger = []
         self.exp_added_urls = []
 
     def runStep(self, expect_waitForFinish=False):
@@ -128,16 +129,12 @@ class TestPartitionTrigger(steps.BuildStepMixin, unittest.TestCase):
             self.assertEqual(early, [])
 
         def check(_):
-            self.assertEqual(self.scheduler_a.triggered_with,
-                             self.exp_a_trigger)
-            self.assertEqual(self.scheduler_b.triggered_with,
-                             self.exp_b_trigger)
-            self.assertEqual(self.step_status.addURL.call_args_list,
-                             self.exp_added_urls)
+            self.assertEqual(self.scheduler_a.triggered_with, self.exp_a_trigger)
+            self.assertEqual(self.scheduler_b.triggered_with, self.exp_b_trigger)
+            self.assertEqual(self.step_status.addURL.call_args_list, self.exp_added_urls)
 
             if self.exp_add_sourcestamp:
-                self.assertEqual(self.addSourceStamp_kwargs,
-                                self.exp_add_sourcestamp)
+                self.assertEqual(self.addSourceStamp_kwargs, self.exp_add_sourcestamp)
         d.addCallback(check)
 
         # pause runStep's completion until after any other callLater's are done
@@ -149,37 +146,57 @@ class TestPartitionTrigger(steps.BuildStepMixin, unittest.TestCase):
 
         return d
 
-
-
     def test_constructor_whenPartitionFunctionIsNotDefined_thenConfigErrorIsRaised(self):
-        self.assertRaises(config.ConfigErrors, lambda: partition_trigger.PartitionTrigger(partitionFunction=None))
+        act = lambda: partition_trigger.PartitionTrigger(partitionFunction=None)
 
-#    def test_simple(self):
-#        def yieldNoPartitions(buildStep, scheduler):
-#            yield {'partition-index': 0}
-#            yield {'partition-index': 1}
-#            yield {'partition-index': 2}
-#        self.setupStep(partition_trigger.PartitionTrigger(partitionFunction=yieldNoPartitions, schedulerNames=['a'], sourceStamps = {}))
-#        self.expectOutcome(result=SUCCESS, status_text=['Triggered:', "'a'"])
-#        self.expectTriggeredWith(a=({}, {'stepname': ('PartitionTrigger', 'Trigger')}, 1))
-#        return self.runStep()
+        self.assertRaises(config.ConfigErrors, act)
 
-#    @defer.inlineCallbacks
-#    def test_start_whenPartitionFunctionReturnsNoBuilds_thenNoSchedulesIsTriggered(self):
-#        def yieldNoPartitions():
-#            return
-#            yield
-#        trigger = partition_trigger.PartitionTrigger(yieldNoPartitions)
-#
-#        trigger.start()
-#
-#        self.assertTrue(True)
+    def test_runStep_whenPartitionFunctionReturnsNoBuilds_thenNoSchedulesIsTriggered(self):
+        def yieldNoPartitions(buildStep, scheduler):
+            if False:
+                yield {'partition-index': -1}
 
-    def test_start_whenPartitionYieldsBuilds_thenSchedulerIsTriggeredForEachBuild(self):
-        self.assertTrue(True)
+        self.setupStep(partition_trigger.PartitionTrigger(partitionFunction=yieldNoPartitions, schedulerNames=['a'], sourceStamps = {}))
 
-    def test_start_whenPartitionYieldsMultipleBuilds_thenLinkIsAddedForEachBuildTriggered(self):
-        self.assertTrue(True)
+        self.expectOutcome(result=SUCCESS, status_text=['Zero partitions returned, nothing has been triggered'])
+        return self.runStep()
 
-    def _setupMaster(self):
-        return
+    def test_runStep_whenPartitionYieldsBuilds_thenSchedulerIsTriggeredForEachBuild(self):
+        def yieldPartitions(buildStep, scheduler):
+            yield {'partition-index': 0}
+            yield {'partition-index': 1}
+            yield {'partition-index': 2}
+
+        self.setupStep(partition_trigger.PartitionTrigger(partitionFunction=yieldPartitions, schedulerNames=['a'], sourceStamps = {}))
+
+        self.expectOutcome(result=SUCCESS, status_text="Triggered: 'a' (split into 3 paritions)")
+        self.aExpectTriggeredWith([
+            ({}, {'partition-index': (0, 'PartitionTrigger'), 'stepname': ('PartitionTrigger', 'Trigger')}, 1),
+            ({}, {'partition-index': (1, 'PartitionTrigger'), 'stepname': ('PartitionTrigger', 'Trigger')}, 1),
+            ({}, {'partition-index': (2, 'PartitionTrigger'), 'stepname': ('PartitionTrigger', 'Trigger')}, 1)
+        ])
+        return self.runStep()
+
+    def test_runStep_whenTriggerWithMultipleSchedulersPartitionYieldsBuilds_thenSchedulerIsTriggeredSchedulerAndForEachBuild(self):
+        def yieldPartitions(buildStep, scheduler):
+            if (scheduler.name == 'a'):
+                yield {'partition-index': 0}
+                yield {'partition-index': 1}
+                yield {'partition-index': 2}
+            elif (scheduler.name == 'b'):
+                yield {'partition-index': 0, 'foo': 'bar'}
+                yield {'partition-index': 1, 'foo': 'baz'}
+
+        self.setupStep(partition_trigger.PartitionTrigger(partitionFunction=yieldPartitions, schedulerNames=['a', 'b'], sourceStamps = {}))
+
+        self.expectOutcome(result=SUCCESS, status_text="Triggered: 'a' (split into 3 paritions)")
+        self.aExpectTriggeredWith([
+            ({}, {'partition-index': (0, 'PartitionTrigger'), 'stepname': ('PartitionTrigger', 'Trigger')}, 1),
+            ({}, {'partition-index': (1, 'PartitionTrigger'), 'stepname': ('PartitionTrigger', 'Trigger')}, 1),
+            ({}, {'partition-index': (2, 'PartitionTrigger'), 'stepname': ('PartitionTrigger', 'Trigger')}, 1)
+        ])
+        self.bExpectTriggeredWith([
+            ({}, {'partition-index': (0, 'PartitionTrigger'), 'foo': ('bar', 'PartitionTrigger'), 'stepname': ('PartitionTrigger', 'Trigger')}, 1),
+            ({}, {'partition-index': (1, 'PartitionTrigger'), 'foo': ('baz', 'PartitionTrigger'), 'stepname': ('PartitionTrigger', 'Trigger')}, 1)
+        ])
+        return self.runStep()
