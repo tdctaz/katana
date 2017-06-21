@@ -1060,6 +1060,18 @@ class FakeBuildRequestsComponent(FakeDBComponent):
 
         return defer.succeed(rv)
 
+    def getBuildRequestsBySourcestamps(self, buildername=None, sourcestamps=None):
+        buildrequests = []
+
+        if sourcestamps:
+            for id, row in self.reqs.iteritems():
+                br_ss = self.sourcestamps.get(id)
+                if self.compare(br_ss, sourcestamps) and buildername and buildername in row.buildername:
+                    br = self._brdictFromRow(row)
+                    buildrequests.append(br)
+
+        return defer.succeed(buildrequests)
+
     def getBuildRequestTriggered(self, triggeredbybrid, buildername):
         rv = None
         for id, br in self.reqs.iteritems():
