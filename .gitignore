@@ -47,3 +47,11 @@ www/generated/
 www/coverage/
 autobahnServer.log
 www/prod/css/custom.css
+
+master/buildbot/test/foo.release
+master/buildbot/test/dir/test file
+master/buildbot/test/revcache
+master/buildbot/test/sessions
+master/buildbot/test/jobdir/
+master/buildbot/test/test/test/
+master/buildbot/test/test.unit.test_status_buildstep/
