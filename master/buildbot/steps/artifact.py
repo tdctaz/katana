@@ -49,7 +49,7 @@ class PreviousBuildStatus:
 
 class FindPreviousSuccessBuildMixin():
     @defer.inlineCallbacks
-    def _determinPreviousBuild(self, master, build, build_sourcestamps):
+    def _determinePreviousBuild(self, master, build, build_sourcestamps):
         if forceRebuild(build):
             defer.returnValue((PreviousBuildStatus.Forced, None))
 
@@ -118,7 +118,7 @@ class FindPreviousSuccessfulBuild(ResumeBuild, FindPreviousSuccessBuildMixin):
 
         yield getBuildSourceStamps(self.build, self.build_sourcestamps)
 
-        (previousBuildRequestStatus, prevBuildRequest) = yield self._determinPreviousBuild(self.master, self.build, self.build_sourcestamps)
+        (previousBuildRequestStatus, prevBuildRequest) = yield self._determinePreviousBuild(self.master, self.build, self.build_sourcestamps)
         if previousBuildRequestStatus == PreviousBuildStatus.Found:
             yield self._previousBuildFound(prevBuildRequest)
         elif previousBuildRequestStatus == PreviousBuildStatus.Forced:
@@ -236,7 +236,7 @@ class CheckArtifactExists(ShellCommandResumeBuild, FindPreviousSuccessBuildMixin
 
         yield getBuildSourceStamps(self.build, self.build_sourcestamps)
 
-        (previousBuildRequestStatus, prevBuildRequest) = yield self._determinPreviousBuild(self.master, self.build, self.build_sourcestamps)
+        (previousBuildRequestStatus, prevBuildRequest) = yield self._determinePreviousBuild(self.master, self.build, self.build_sourcestamps)
         if previousBuildRequestStatus == PreviousBuildStatus.Found:
             yield self._previousBuildFound(prevBuildRequest)
         elif previousBuildRequestStatus == PreviousBuildStatus.Forced:
