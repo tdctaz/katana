@@ -441,12 +441,7 @@ class DownloadArtifact(ShellCommand):
             self.master = self.build.builder.botmaster.parent
 
         #find artifact dependency
-        triggeredbybrid = self.build.requests[0].id
-        br = yield self.master.db.buildrequests.getBuildRequestTriggered(triggeredbybrid, self.artifactBuilderName)
-
-        if br is None:
-            id = yield self.master.db.buildrequests.getTriggeredById(self.build.requests[0].id)
-            br = yield self.master.db.buildrequests.getBuildRequestById(id)
+        br = yield self._getBuildRequest()
 
         if br["submitted_at"] > ARTIFACT_LOCATION_CHANGE_DATE:
             artifactPath  = "%s/%s_%s" % (safeTranslate(self.artifactBuilderName),
@@ -464,6 +459,21 @@ class DownloadArtifact(ShellCommand):
 
         self.setCommand(command)
         ShellCommand.start(self)
+
+    @defer.inlineCallbacks
+    def _getBuildRequest(self):
+        triggeredbybrid = self.build.requests[0].id
+        br = yield self.master.db.buildrequests.getBuildRequestTriggered(triggeredbybrid, self.artifactBuilderName)
+        defer.returnValue(br)
+
+
+class DownloadArtifactFromParent(DownloadArtifact):
+    @defer.inlineCallbacks
+    def _getBuildRequest(self):
+        triggeredbybrid = self.build.requests[0].id
+        id = yield self.master.db.buildrequests.getTriggeredById(triggeredbybrid)
+        br = yield self.master.db.buildrequests.getBuildRequestById(id)
+        defer.returnValue(br)
 
 
 class AcquireBuildLocks(LoggingBuildStep):
