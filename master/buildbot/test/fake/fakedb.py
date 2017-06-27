@@ -709,6 +709,14 @@ class FakeBuildsetsComponent(FakeDBComponent):
         row = self.buildsets[bsid]
         return defer.succeed(self._row2dict(row))
 
+    def getBuildsetsByIds(self, bsids):
+        buildsets = {}
+        for bsid in bsids:
+            if bsid in self.buildsets:
+                row = self.buildsets[bsid]
+                buildsets[row['id']] = self._row2dict(row)
+        return defer.succeed(buildsets)
+
     def getBuildsets(self, complete=None):
         rv = []
         for bs in self.buildsets.itervalues():
@@ -734,10 +742,17 @@ class FakeBuildsetsComponent(FakeDBComponent):
         del row['id']
         return row
 
+    def getBuildsetsProperties(self, buildSetIds):
+        buildSetProperties = {}
+        for buildSetId in buildSetIds:
+            if buildSetId in self.buildsets:
+                buildSetProperties[buildSetId] = self.buildsets[buildSetId]['properties']
+        return defer.succeed(buildSetProperties)
+
     def getBuildsetProperties(self, buildsetid):
         if buildsetid in self.buildsets:
             return defer.succeed(
-                    self.buildsets[buildsetid]['properties'])
+                self.buildsets[buildsetid]['properties'])
         else:
             return defer.succeed({})
 

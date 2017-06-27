@@ -150,6 +150,19 @@ class BuildsetsConnectorComponent(base.DBConnectorComponent):
             return self._row2dict(row)
         return self.db.pool.do(thd)
 
+    def getBuildsetsByIds(self, bsids):
+        def thd(conn):
+            bs_tbl = self.db.model.buildsets
+            q = bs_tbl.select(whereclause=(bs_tbl.c.id.in_(bsids)))
+            res = conn.execute(q)
+            build_sets = {}
+            for row in res.fetchall():
+                bs = self._row2dict(row)
+                build_sets[row.id] = bs
+            return build_sets
+
+        return self.db.pool.do(thd)
+
     def getBuildsets(self, complete=None):
         def thd(conn):
             bs_tbl = self.db.model.buildsets
@@ -219,6 +232,25 @@ class BuildsetsConnectorComponent(base.DBConnectorComponent):
                 except ValueError:
                     pass
             return dict(l)
+        return self.db.pool.do(thd)
+
+    def getBuildsetsProperties(self, buildSetIds):
+        def thd(conn):
+            bsp_tbl = self.db.model.buildset_properties
+            q = sa.select(
+                [bsp_tbl.c.buildsetid, bsp_tbl.c.property_name, bsp_tbl.c.property_value],
+                whereclause=(bsp_tbl.c.buildsetid.in_(buildSetIds)))
+            buildSetsProperties = {}
+            for row in conn.execute(q):
+                try:
+                    if row.buildsetid not in buildSetsProperties:
+                        buildSetsProperties[row.buildsetid] = {}
+                    properties = json.loads(row.property_value)
+                    buildSetsProperties[row.buildsetid][row.property_name] = tuple(properties)
+                except ValueError:
+                    pass
+
+            return buildSetsProperties
         return self.db.pool.do(thd)
 
     def _row2dict(self, row):

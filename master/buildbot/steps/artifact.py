@@ -71,8 +71,11 @@ class FindPreviousSuccessBuildMixin():
                                                 sourcestamps = build_sourcestamps)
             if len(prevBuildRequests) > 0 and len(build.requests) > 0:
                 req1 = build.requests[0]
+                buildSetIds = list(set([br['buildsetid'] for br in prevBuildRequests]))
+                buildSets = yield master.db.buildsets.getBuildsetsByIds(buildSetIds)
+                buildSetsProperties = yield master.db.buildsets.getBuildsetsProperties(buildSetIds)
                 for prevBuildRequest in prevBuildRequests:
-                    req2 = yield self._getBuildRequest(master, prevBuildRequest, req1.sources)
+                    req2 = self._getBuildRequest(master, prevBuildRequest, buildSets, buildSetsProperties, req1.sources)
                     if (mergeRequestFn(build.builder, req1, req2)):
                         defer.returnValue((PreviousBuildStatus.Found, prevBuildRequest))
 
@@ -82,21 +85,21 @@ class FindPreviousSuccessBuildMixin():
         if len(build.requests) > 1:
             yield master.db.buildrequests.updateMergedBuildRequest(build.requests)
 
-    # A more light weight function for making a build request, it uses as much of the information we already have to
-    # make a build request - so we only need to fetch the properties
-    @defer.inlineCallbacks
-    def _getBuildRequest(self, master, brdict, sources):
+    # A more light weight function for making a build request, it expects that the information needed
+    # has already been fetched
+    def _getBuildRequest(self, master, brdict, buildSets, buildSetsProperties, sources):
+        buildSetId = brdict['buildsetid']
 
-        # fetch the buildset to get the reason
-        buildset = yield master.db.buildsets.getBuildset(brdict['buildsetid'])
-        assert buildset # schema should guarantee this
+        assert buildSetId in buildSets  # schema should guarantee this
+        buildset = buildSets[buildSetId]
 
         # fetch the buildset properties, and convert to Properties
-        buildset_properties = yield master.db.buildsets.getBuildsetProperties(brdict['buildsetid'])
-        props = properties.Properties.fromDict(buildset_properties)
+        buildSetProperties = {}
+        if buildSetId in buildSetsProperties:
+            buildSetProperties = buildSetsProperties[buildSetId]
+        props = properties.Properties.fromDict(buildSetProperties)
 
-        defer.returnValue(BuildRequest.makeBuildRequest(master, brdict, buildset, props, sources))
-
+        return BuildRequest.makeBuildRequest(master, brdict, buildset, props, sources)
 
 class FindPreviousSuccessfulBuild(ResumeBuild, FindPreviousSuccessBuildMixin):
     name = "Find Previous Successful Build"
