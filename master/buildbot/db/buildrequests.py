@@ -812,6 +812,31 @@ class BuildRequestsConnectorComponent(base.DBConnectorComponent):
 
         return self.db.pool.do(thd)
 
+    def getBuildRequestsTriggeredBy(self, triggeredbybrid, buildername):
+        def thd(conn):
+            buildrequests_tbl = self.db.model.buildrequests
+
+            stmt_br = sa.select([buildrequests_tbl]) \
+                .where(buildrequests_tbl.c.buildername == buildername) \
+                .where(buildrequests_tbl.c.triggeredbybrid == triggeredbybrid)
+
+            res = conn.execute(stmt_br)
+            rows = res.fetchall()
+            buildrequests = []
+            for row in rows:
+                submitted_at = mkdt(row.submitted_at)
+                complete_at = mkdt(row.complete_at)
+
+                buildrequest = dict(brid=row.id, buildsetid=row.buildsetid,
+                                    buildername=row.buildername, priority=row.priority,
+                                    complete=bool(row.complete), results=row.results,
+                                    submitted_at=submitted_at, complete_at=complete_at, artifactbrid=row.artifactbrid)
+                buildrequests.append(buildrequest)
+            res.close()
+            return buildrequests
+
+        return self.db.pool.do(thd)
+
     def getTriggeredById(self, id):
         def thd(conn):
             buildrequests_tbl = self.db.model.buildrequests
