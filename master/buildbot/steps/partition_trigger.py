@@ -42,14 +42,15 @@ class PartitionTrigger(Trigger):
                 dl.append(sch.trigger(sourceStampForTrigger, set_props=propertiesToSetForPartition,
                     triggeredbybrid=triggeredByBuildRequestId, reason=self.build.build_status.getReason()))
                 partitionCount += 1
-            if partitionCount > 0:
+            if partitionCount == 0: # No partition triggered, so trigger the scheduler normally
+                propertiesToSet = self.createTriggerProperties()
+                dl.append(sch.trigger(sourceStampForTrigger, set_props=propertiesToSet,
+                    triggeredbybrid=triggeredByBuildRequestId, reason=self.build.build_status.getReason()))
+                triggeredNames.append("'%s'" % sch.name)
+            else:
                 triggeredNames.append("'%s' (split into %d partitions)" % (sch.name, partitionCount))
 
-        if len(triggeredNames) > 0:
-            statusText = "Triggered: %s" % ", ".join(triggeredNames)
-            self.step_status.setText(statusText)
-        else:
-            self.step_status.setText("Zero partitions returned, nothing has been triggered")
+        self.step_status.setText(['Triggered:'] + triggeredNames)
 
         return dl
 

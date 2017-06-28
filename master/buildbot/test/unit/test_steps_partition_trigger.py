@@ -151,14 +151,17 @@ class TestPartitionTrigger(steps.BuildStepMixin, unittest.TestCase):
 
         self.assertRaises(config.ConfigErrors, act)
 
-    def test_runStep_whenPartitionFunctionReturnsNoBuilds_thenNoSchedulesIsTriggered(self):
+    def test_runStep_whenPartitionFunctionReturnsNoBuilds_thenSingleSchedulesIsTriggeredWithNoAdditionalProperties(self):
         def yieldNoPartitions(buildStep, scheduler):
             if False:
                 yield {'partition-index': -1}
 
         self.setupStep(partition_trigger.PartitionTrigger(partitionFunction=yieldNoPartitions, schedulerNames=['a'], sourceStamps = {}))
 
-        self.expectOutcome(result=SUCCESS, status_text=['Zero partitions returned, nothing has been triggered'])
+        self.expectOutcome(result=SUCCESS, status_text=["Triggered:", "'a'"])
+        self.aExpectTriggeredWith([
+            ({}, {'stepname': ('PartitionTrigger', 'Trigger')}, 1)
+        ])
         return self.runStep()
 
     def test_runStep_whenPartitionYieldsBuilds_thenSchedulerIsTriggeredForEachBuild(self):
@@ -169,7 +172,7 @@ class TestPartitionTrigger(steps.BuildStepMixin, unittest.TestCase):
 
         self.setupStep(partition_trigger.PartitionTrigger(partitionFunction=yieldPartitions, schedulerNames=['a'], sourceStamps = {}))
 
-        self.expectOutcome(result=SUCCESS, status_text="Triggered: 'a' (split into 3 paritions)")
+        self.expectOutcome(result=SUCCESS, status_text=["Triggered:", "'a' (split into 3 partitions)"])
         self.aExpectTriggeredWith([
             ({}, {'partition-index': (0, 'PartitionTrigger'), 'stepname': ('PartitionTrigger', 'Trigger')}, 1),
             ({}, {'partition-index': (1, 'PartitionTrigger'), 'stepname': ('PartitionTrigger', 'Trigger')}, 1),
@@ -189,7 +192,7 @@ class TestPartitionTrigger(steps.BuildStepMixin, unittest.TestCase):
 
         self.setupStep(partition_trigger.PartitionTrigger(partitionFunction=yieldPartitions, schedulerNames=['a', 'b'], sourceStamps = {}))
 
-        self.expectOutcome(result=SUCCESS, status_text="Triggered: 'a' (split into 3 paritions)")
+        self.expectOutcome(result=SUCCESS, status_text=["Triggered:", "'a' (split into 3 partitions)", "'b' (split into 2 partitions)"])
         self.aExpectTriggeredWith([
             ({}, {'partition-index': (0, 'PartitionTrigger'), 'stepname': ('PartitionTrigger', 'Trigger')}, 1),
             ({}, {'partition-index': (1, 'PartitionTrigger'), 'stepname': ('PartitionTrigger', 'Trigger')}, 1),
