@@ -303,7 +303,6 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
                                                  artifactDirectory="mydir",
                                                  artifactServer='usr@srv.com',
                                                  artifactServerDir='/home/srv/web/dir'), [fake_br2, fake_trigger])
-
         self.expectCommands(
             ExpectShell(workdir='wkdir', usePTY='slave-config',
                         command='for i in 1 2 3 4 5; do rsync -var --progress --partial ' +
@@ -314,3 +313,38 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
         )
         self.expectOutcome(result=SUCCESS, status_text=["Downloaded 'B'."])
         return self.runStep()
+
+    def test_download_artifact_fromchildren_reusing_artifacts(self):
+        br2 = fakedb.BuildRequest(id=2, buildsetid=2, buildername="B", triggeredbybrid=1)
+
+        self.setupStep(
+            artifact.DownloadArtifactFromChilden(
+                artifactServer='usr@srv.com',
+                artifactServerDir='/artifacts',
+                artifactServerPort=22,
+                artifactDirectory='mydir',
+                artifactBuilderName="#TODO: REMOVE ME",
+                projectPrefix='',
+                targetConfig='B'
+        ), [br2])
+
+        expectedRemote = '\'usr@srv.com:/artifacts/B_2_01_01_1970_00_00_00_+0000/mydir/\''
+        expectedLocal = '\'./build/ReportedArtifacts/2\''
+
+        self.expectCommands(
+            ExpectShell(workdir='build', usePTY='slave-config',
+                        command=['C:\\cygwin64\\bin\\mkdir.exe', '-p', './build/ReportedArtifacts/2']),
+
+
+            ExpectShell(workdir='build', usePTY='slave-config',
+                        command='for i in 1 2 3 4 5; do rsync -var --progress --partial ' +
+                                expectedRemote + ' ' + expectedLocal +
+                                ' --rsh=\'ssh -p 22\'; if [ $? -eq 0 ]; then exit 0; else sleep 5; fi; done; exit -1'
+                        )
+            + 0
+        )
+
+        self.expectOutcome(result=SUCCESS,  status_text=["Downloaded 'B'."])
+        return self.runStep()
+
+    #TODO: local calculation

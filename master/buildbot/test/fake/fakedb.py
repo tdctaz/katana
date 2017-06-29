@@ -1096,6 +1096,16 @@ class FakeBuildRequestsComponent(FakeDBComponent):
                 return self._brdictFromRow(br)
         return rv
 
+    def getBuildRequestsTriggeredBy(self, triggeredbybrid, buildername):
+        rv = []
+        for id, br in self.reqs.iteritems():
+            if br.triggeredbybrid == triggeredbybrid and br.buildername == buildername:
+                rv.append(self._brdictFromRow(self.reqs[id]))
+        return rv
+
+    def getBuildRequestById(self, id):
+        return self._brdictFromRow(self.reqs[id])
+
     def reusePreviousBuild(self, requests, artifactbrid):
         return defer.succeed(None)
 
@@ -1159,7 +1169,8 @@ class FakeBuildRequestsComponent(FakeDBComponent):
                 buildername=row.buildername, priority=row.priority,
                 claimed=claimed, claimed_at=claimed_at, mine=mine,
                 complete=bool(row.complete), results=row.results,
-                submitted_at=submitted_at, complete_at=complete_at)
+                submitted_at=submitted_at, complete_at=complete_at,
+                artifactbrid=row.artifactbrid)
 
     # fake methods
 

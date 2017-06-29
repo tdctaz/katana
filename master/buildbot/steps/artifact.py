@@ -1,3 +1,5 @@
+from buildbot.steps.slave import CompositeStepMixin
+
 from buildbot.process.buildstep import LoggingBuildStep, SUCCESS, SKIPPED
 from twisted.internet import defer
 from buildbot.steps.shell import ShellCommand
@@ -477,6 +479,96 @@ class DownloadArtifactFromParent(DownloadArtifact):
         br = yield self.master.db.buildrequests.getBuildRequestById(id)
         defer.returnValue(br)
 
+class DownloadArtifactFromChilden(DownloadArtifact, CompositeStepMixin):
+    name = "Download artifacts from all the partitions"
+    description = "Downloading artifacts from all the partitions"
+    descriptionDone = "Done 'Downloading artifacts from all the partitions.'"
+    alwaysRun = True
+
+    def __init__(self,
+                 artifactBuilderName=None,
+                 artifact=None,
+                 artifactDirectory=None,
+                 artifactDestination=None,
+                 artifactServer=None,
+                 artifactServerDir=None,
+                 artifactServerPort=None,
+                 usePowerShell=True,
+                 projectPrefix=None,
+                 targetConfig=None):
+        self.workdir = 'build'
+        self.artifactBuilderName = artifactBuilderName
+        self.artifact = artifact
+        self.artifactDirectory = artifactDirectory
+        self.artifactServer = artifactServer
+        self.artifactServerDir = artifactServerDir
+        self.artifactServerPort = artifactServerPort
+        self.artifactDestination = artifactDestination or artifact
+        self.projectPrefix = projectPrefix
+        self.master = None
+        self.usePowerShell = usePowerShell
+        self.target_config = targetConfig
+        name = "Download Artifact for '%s'" % artifactBuilderName
+        description = "Downloading artifact '%s'..." % artifactBuilderName
+        descriptionDone = "Downloaded '%s'." % artifactBuilderName
+        LoggingBuildStep.__init__(self, timestamp_stdio=True)
+
+    @staticmethod
+    def _getBuildRequestIdsWithArtifacts(buildrequests):
+        ids = []
+        for br in buildrequests:
+            artifactbrid = br['artifactbrid']
+            if artifactbrid == None:
+                ids.append(br['brid'])
+            else:
+                ids.append(artifactbrid)
+        return ids
+
+    @defer.inlineCallbacks
+    def start(self):
+        if self.master is None:
+            self.master = self.build.builder.botmaster.parent
+        self.failedPartitionsDownloadCount = 0
+        self.partitionsDownloaded = 0
+        requestId = self.build.requests[0].id
+        triggeredBuilderName = self.projectPrefix + self.target_config
+        partitionRequests = yield self.master.db.buildrequests.getBuildRequestsTriggeredBy(requestId, triggeredBuilderName)
+        buildRequetsIdsWithArtifacts = self._getBuildRequestIdsWithArtifacts(partitionRequests)
+
+        for id in buildRequetsIdsWithArtifacts:
+            r = yield self.master.db.buildrequests.getBuildRequestById(id)
+            triggeredBuilderName = self.projectPrefix + self.target_config
+            artifactPath = "%s_%s_%s" % (safeTranslate(triggeredBuilderName),
+                                         id, FormatDatetime(r["submitted_at"]))
+
+            artifactPath += "/%s" % self.artifactDirectory
+            remotelocation = getRemoteLocation(self.artifactServer, self.artifactServerDir, artifactPath, "")
+            localdir = "./build/ReportedArtifacts/" + str(id)
+
+            command = [r'C:\cygwin64\bin\mkdir.exe', '-p', localdir]
+            yield self._dovccmd(command)
+
+            rsync = rsyncWithRetry(self, remotelocation, localdir, self.artifactServerPort)
+            yield self._dovccmd(rsync, collectStdout=True)
+
+        self.finished(SUCCESS)
+
+    def _dovccmd(self, command, collectStdout=False):
+        if not command:
+            raise ValueError("No command specified")
+        from buildbot.process import buildstep
+        cmd = buildstep.RemoteShellCommand(self.workdir,
+                command, collectStdout=collectStdout,
+                collectStderr=True)
+
+        d = self.runCommand(cmd)
+        def evaluateCommand(cmd):
+            if cmd.didFail():
+                buildstep.BuildStepFailed()
+                return cmd.stderr
+            return cmd.rc
+        d.addCallback(lambda _: evaluateCommand(cmd))
+        return d
 
 class AcquireBuildLocks(LoggingBuildStep):
     name = "Acquire Build Slave"
