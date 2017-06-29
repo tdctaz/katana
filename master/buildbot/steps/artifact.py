@@ -486,43 +486,13 @@ class DownloadArtifactFromChilden(DownloadArtifact, CompositeStepMixin):
     alwaysRun = True
 
     def __init__(self,
-                 artifactBuilderName=None,
-                 artifact=None,
-                 artifactDirectory=None,
-                 artifactDestination=None,
-                 artifactServer=None,
-                 artifactServerDir=None,
-                 artifactServerPort=None,
-                 usePowerShell=True,
                  projectPrefix=None,
-                 targetConfig=None):
+                 targetConfig=None, **kwargs):
         self.workdir = 'build'
-        self.artifactBuilderName = artifactBuilderName
-        self.artifact = artifact
-        self.artifactDirectory = artifactDirectory
-        self.artifactServer = artifactServer
-        self.artifactServerDir = artifactServerDir
-        self.artifactServerPort = artifactServerPort
-        self.artifactDestination = artifactDestination or artifact
         self.projectPrefix = projectPrefix
-        self.master = None
-        self.usePowerShell = usePowerShell
         self.target_config = targetConfig
-        name = "Download Artifact for '%s'" % artifactBuilderName
-        description = "Downloading artifact '%s'..." % artifactBuilderName
-        descriptionDone = "Downloaded '%s'." % artifactBuilderName
-        LoggingBuildStep.__init__(self, timestamp_stdio=True)
-
-    @staticmethod
-    def _getBuildRequestIdsWithArtifacts(buildrequests):
-        ids = []
-        for br in buildrequests:
-            artifactbrid = br['artifactbrid']
-            if artifactbrid == None:
-                ids.append(br['brid'])
-            else:
-                ids.append(artifactbrid)
-        return ids
+        self.kwargs = kwargs
+        DownloadArtifact.__init__(self, **kwargs)
 
     @defer.inlineCallbacks
     def start(self):
@@ -549,7 +519,7 @@ class DownloadArtifactFromChilden(DownloadArtifact, CompositeStepMixin):
             yield self._dovccmd(command)
 
             rsync = rsyncWithRetry(self, remotelocation, localdir, self.artifactServerPort)
-            yield self._dovccmd(rsync, collectStdout=True)
+            yield self._dovccmd(rsync)
 
         self.finished(SUCCESS)
 
@@ -569,6 +539,18 @@ class DownloadArtifactFromChilden(DownloadArtifact, CompositeStepMixin):
             return cmd.rc
         d.addCallback(lambda _: evaluateCommand(cmd))
         return d
+
+    @staticmethod
+    def _getBuildRequestIdsWithArtifacts(buildrequests):
+        ids = []
+        for br in buildrequests:
+            artifactbrid = br['artifactbrid']
+            if artifactbrid == None:
+                ids.append(br['brid'])
+            else:
+                ids.append(artifactbrid)
+        return ids
+
 
 class AcquireBuildLocks(LoggingBuildStep):
     name = "Acquire Build Slave"

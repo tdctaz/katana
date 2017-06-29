@@ -323,9 +323,10 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
                 artifactServerDir='/artifacts',
                 artifactServerPort=22,
                 artifactDirectory='mydir',
-                artifactBuilderName="#TODO: REMOVE ME",
+                artifactBuilderName='B',
                 projectPrefix='',
-                targetConfig='B'
+                targetConfig='B',
+                artifact=''
         ), [br2])
 
         expectedRemote = '\'usr@srv.com:/artifacts/B_2_01_01_1970_00_00_00_+0000/mydir/\''
@@ -344,7 +345,5 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
             + 0
         )
 
-        self.expectOutcome(result=SUCCESS,  status_text=["Downloaded 'B'."])
+        self.expectOutcome(result=SUCCESS,  status_text='')
         return self.runStep()
-
-    #TODO: local calculation
