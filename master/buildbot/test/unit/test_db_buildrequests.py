@@ -784,13 +784,9 @@ class TestBuildsetsConnectorComponent(
         return d
 
     def test_getBuildRequestsTriggeredBy(self):
-        breqs = [fakedb.BuildRequest(id=1, buildsetid=1, buildername="A", complete=1, results=0),
-                 fakedb.BuildRequest(id=2, buildsetid=2, buildername="B", complete=1, results=0,
-                                     submitted_at=self.SUBMITTED_AT_EPOCH, complete_at=self.COMPLETE_AT_EPOCH,
-                                     triggeredbybrid=1, startbrid=1),
-                 fakedb.BuildRequest(id=3, buildsetid=2, buildername="B", complete=1, results=0,
-                                     submitted_at=self.SUBMITTED_AT_EPOCH, complete_at=self.COMPLETE_AT_EPOCH,
-                                     triggeredbybrid=1, startbrid=1)
+        breqs = [fakedb.BuildRequest(id=1, buildsetid=1, buildername="A"),
+                 fakedb.BuildRequest(id=2, buildsetid=2, buildername="B", triggeredbybrid=1),
+                 fakedb.BuildRequest(id=3, buildsetid=3, buildername="B", triggeredbybrid=1)
                  ]
         d = self.insertTestData(breqs)
         d.addCallback(lambda _:
