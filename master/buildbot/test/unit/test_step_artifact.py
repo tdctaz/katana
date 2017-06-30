@@ -316,6 +316,8 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
 
     def test_download_artifact_fromchildren_reusing_artifacts(self):
         br2 = fakedb.BuildRequest(id=2, buildsetid=2, buildername="B", triggeredbybrid=1)
+        br3 = fakedb.BuildRequest(id=3, buildsetid=3, buildername="B", triggeredbybrid=1, artifactbrid=666)
+        br666 = fakedb.BuildRequest(id=666, buildsetid=5, buildername="B", triggeredbybrid=None)
 
         self.setupStep(
             artifact.DownloadArtifactFromChilden(
@@ -328,10 +330,13 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
                 targetConfig='B',
                 artifact='',
                 name='Download partitions'
-        ), [br2])
+        ), [br2, br3, br666])
 
-        expectedRemote = '\'usr@srv.com:/artifacts/B_2_01_01_1970_00_00_00_+0000/mydir/\''
-        expectedLocal = '\'./build/ReportedArtifacts/2\''
+        expectedRemote1 = '\'usr@srv.com:/artifacts/B_2_01_01_1970_00_00_00_+0000/mydir/\''
+        expectedRemote2 = '\'usr@srv.com:/artifacts/B_666_01_01_1970_00_00_00_+0000/mydir/\''
+
+        expectedLocal1 = '\'./build/ReportedArtifacts/2\''
+        expectedLocal2 = '\'./build/ReportedArtifacts/666\''
 
         self.expectCommands(
             ExpectShell(workdir='build', usePTY='slave-config',
@@ -340,12 +345,19 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
 
             ExpectShell(workdir='build', usePTY='slave-config',
                         command='for i in 1 2 3 4 5; do rsync -var --progress --partial ' +
-                                expectedRemote + ' ' + expectedLocal +
+                                expectedRemote1 + ' ' + expectedLocal1 +
+                                ' --rsh=\'ssh -p 22\'; if [ $? -eq 0 ]; then exit 0; else sleep 5; fi; done; exit -1'
+                        ),
+            ExpectShell(workdir='build', usePTY='slave-config',
+                        command=['C:\\cygwin64\\bin\\mkdir.exe', '-p', './build/ReportedArtifacts/666']),
+            ExpectShell(workdir='build', usePTY='slave-config',
+                        command='for i in 1 2 3 4 5; do rsync -var --progress --partial ' +
+                                expectedRemote2 + ' ' + expectedLocal2 +
                                 ' --rsh=\'ssh -p 22\'; if [ $? -eq 0 ]; then exit 0; else sleep 5; fi; done; exit -1'
                         )
             + ExpectShell.log('stdio', stdout='')
             + 0
         )
 
-        self.expectOutcome(result=SUCCESS,  status_text='Downloaded 1 partition')
+        self.expectOutcome(result=SUCCESS,  status_text='Downloaded 2 partitions')
         return self.runStep()
