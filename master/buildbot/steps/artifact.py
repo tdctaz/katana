@@ -483,7 +483,7 @@ class DownloadArtifactFromChilden(LoggingBuildStep, CompositeStepMixin):
     def __init__(self, name=None, projectPrefix=None, targetConfig=None, artifactBuilderName=None,
                  artifact=None, artifactDirectory=None, artifactDestination=None,
                  artifactServer=None, artifactServerDir=None, artifactServerPort=None,
-                 usePowerShell=True, **kwargs):
+                 usePowerShell=True, baseLocalDir=None, **kwargs):
         self.workdir = 'build'
         self.artifactBuilderName = artifactBuilderName
         self.artifact = artifact
@@ -498,6 +498,7 @@ class DownloadArtifactFromChilden(LoggingBuildStep, CompositeStepMixin):
         self.usePowerShell = usePowerShell
         self.kwargs = kwargs
         self.name = name
+        self.baseLocalDir = baseLocalDir
         LoggingBuildStep.__init__(self, **kwargs)
 
     @defer.inlineCallbacks
@@ -505,26 +506,25 @@ class DownloadArtifactFromChilden(LoggingBuildStep, CompositeStepMixin):
         if self.master is None:
             self.master = self.build.builder.botmaster.parent
 
-        requestId = self.build.requests[0].id
+        brid = self.build.requests[0].id
         triggeredBuilderName = self.projectPrefix + self.target_config
-        partitionRequests = yield self.master.db.buildrequests.getBuildRequestsTriggeredBy(requestId, triggeredBuilderName)
+        partitionRequests = yield self.master.db.buildrequests.getBuildRequestsTriggeredBy(brid, triggeredBuilderName)
         buildRequetsIdsWithArtifacts = self._getBuildRequestIdsWithArtifacts(partitionRequests)
         self.partitionCount = len(buildRequetsIdsWithArtifacts)
         self.stdio_log = self.addLogForRemoteCommands("stdio")
         self.stdio_log.setTimestampsMode(self.timestamp_stdio)
 
         for id in buildRequetsIdsWithArtifacts:
-            r = yield self.master.db.buildrequests.getBuildRequestById(id)
+            buildRequest = yield self.master.db.buildrequests.getBuildRequestById(id)
             triggeredBuilderName = self.projectPrefix + self.target_config
             artifactPath = "%s_%s_%s" % (safeTranslate(triggeredBuilderName),
-                                         id, FormatDatetime(r["submitted_at"]))
-
+                                         id, FormatDatetime(buildRequest["submitted_at"]))
 
             artifactPath += "/%s" % self.artifactDirectory
             remotelocation = getRemoteLocation(self.artifactServer, self.artifactServerDir, artifactPath, "")
-            localdir = "./build/ReportedArtifacts/" + str(id)
+            localdir = self.baseLocalDir + '/' + str(id)
 
-            command = [r'C:\cygwin64\bin\mkdir.exe', '-p', localdir]
+            command = [r'C:\cygwin64\bin\mkdir.exe', '-p', '\''+ localdir  + '\'']
             yield self._docmd(command)
 
             rsync = rsyncWithRetry(self, remotelocation, localdir, self.artifactServerPort)

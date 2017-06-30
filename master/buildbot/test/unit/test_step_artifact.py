@@ -325,22 +325,23 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
                 artifactServerDir='/artifacts',
                 artifactServerPort=22,
                 artifactDirectory='mydir',
+                artifact='',
                 artifactBuilderName='B',
                 projectPrefix='',
                 targetConfig='B',
-                artifact='',
+                baseLocalDir='./base/local',
                 name='Download partitions'
         ), [br2, br3, br666])
 
         expectedRemote1 = '\'usr@srv.com:/artifacts/B_2_01_01_1970_00_00_00_+0000/mydir/\''
         expectedRemote2 = '\'usr@srv.com:/artifacts/B_666_01_01_1970_00_00_00_+0000/mydir/\''
 
-        expectedLocal1 = '\'./build/ReportedArtifacts/2\''
-        expectedLocal2 = '\'./build/ReportedArtifacts/666\''
+        expectedLocal1 = '\'./base/local/2\''
+        expectedLocal2 = '\'./base/local/666\''
 
         self.expectCommands(
             ExpectShell(workdir='build', usePTY='slave-config',
-                        command=['C:\\cygwin64\\bin\\mkdir.exe', '-p', './build/ReportedArtifacts/2']),
+                        command=['C:\\cygwin64\\bin\\mkdir.exe', '-p', expectedLocal1]),
 
 
             ExpectShell(workdir='build', usePTY='slave-config',
@@ -349,7 +350,7 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
                                 ' --rsh=\'ssh -p 22\'; if [ $? -eq 0 ]; then exit 0; else sleep 5; fi; done; exit -1'
                         ),
             ExpectShell(workdir='build', usePTY='slave-config',
-                        command=['C:\\cygwin64\\bin\\mkdir.exe', '-p', './build/ReportedArtifacts/666']),
+                        command=['C:\\cygwin64\\bin\\mkdir.exe', '-p', expectedLocal2]),
             ExpectShell(workdir='build', usePTY='slave-config',
                         command='for i in 1 2 3 4 5; do rsync -var --progress --partial ' +
                                 expectedRemote2 + ' ' + expectedLocal2 +
