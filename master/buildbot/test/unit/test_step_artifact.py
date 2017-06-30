@@ -342,8 +342,9 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
                                 expectedRemote + ' ' + expectedLocal +
                                 ' --rsh=\'ssh -p 22\'; if [ $? -eq 0 ]; then exit 0; else sleep 5; fi; done; exit -1'
                         )
+            + ExpectShell.log('stdio', stdout='')
             + 0
         )
 
-        self.expectOutcome(result=SUCCESS,  status_text='')
+        self.expectOutcome(result=SUCCESS,  status_text='Downloaded 1 partition')
         return self.runStep()

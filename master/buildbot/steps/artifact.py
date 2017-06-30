@@ -480,11 +480,6 @@ class DownloadArtifactFromParent(DownloadArtifact):
         defer.returnValue(br)
 
 class DownloadArtifactFromChilden(DownloadArtifact, CompositeStepMixin):
-    name = "Download artifacts from all the partitions"
-    description = "Downloading artifacts from all the partitions"
-    descriptionDone = "Done 'Downloading artifacts from all the partitions.'"
-    alwaysRun = True
-
     def __init__(self,
                  projectPrefix=None,
                  targetConfig=None, **kwargs):
@@ -504,6 +499,8 @@ class DownloadArtifactFromChilden(DownloadArtifact, CompositeStepMixin):
         triggeredBuilderName = self.projectPrefix + self.target_config
         partitionRequests = yield self.master.db.buildrequests.getBuildRequestsTriggeredBy(requestId, triggeredBuilderName)
         buildRequetsIdsWithArtifacts = self._getBuildRequestIdsWithArtifacts(partitionRequests)
+        self.stdio_log = self.addLogForRemoteCommands("stdio")
+        self.stdio_log.setTimestampsMode(self.timestamp_stdio)
 
         for id in buildRequetsIdsWithArtifacts:
             r = yield self.master.db.buildrequests.getBuildRequestById(id)
@@ -511,31 +508,35 @@ class DownloadArtifactFromChilden(DownloadArtifact, CompositeStepMixin):
             artifactPath = "%s_%s_%s" % (safeTranslate(triggeredBuilderName),
                                          id, FormatDatetime(r["submitted_at"]))
 
+
             artifactPath += "/%s" % self.artifactDirectory
             remotelocation = getRemoteLocation(self.artifactServer, self.artifactServerDir, artifactPath, "")
             localdir = "./build/ReportedArtifacts/" + str(id)
 
             command = [r'C:\cygwin64\bin\mkdir.exe', '-p', localdir]
-            yield self._dovccmd(command)
+            yield self._docmd(command)
 
             rsync = rsyncWithRetry(self, remotelocation, localdir, self.artifactServerPort)
-            yield self._dovccmd(rsync)
+            yield self._docmd(rsync)
 
+
+        self.step_status.setText("Downloaded %s partitions" % len(partitionRequests))
         self.finished(SUCCESS)
 
-    def _dovccmd(self, command, collectStdout=False):
+    def _docmd(self, command):
         if not command:
             raise ValueError("No command specified")
         from buildbot.process import buildstep
         cmd = buildstep.RemoteShellCommand(self.workdir,
-                command, collectStdout=collectStdout,
+                command, collectStdout=False,
                 collectStderr=True)
-
+        cmd.useLog(self.stdio_log, False)
         d = self.runCommand(cmd)
         def evaluateCommand(cmd):
             if cmd.didFail():
                 buildstep.BuildStepFailed()
                 return cmd.stderr
+
             return cmd.rc
         d.addCallback(lambda _: evaluateCommand(cmd))
         return d
