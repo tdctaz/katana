@@ -479,26 +479,37 @@ class DownloadArtifactFromParent(DownloadArtifact):
         br = yield self.master.db.buildrequests.getBuildRequestById(id)
         defer.returnValue(br)
 
-class DownloadArtifactFromChilden(DownloadArtifact, CompositeStepMixin):
-    def __init__(self,
-                 projectPrefix=None,
-                 targetConfig=None, **kwargs):
+class DownloadArtifactFromChilden(LoggingBuildStep, CompositeStepMixin):
+    def __init__(self, name=None, projectPrefix=None, targetConfig=None, artifactBuilderName=None,
+                 artifact=None, artifactDirectory=None, artifactDestination=None,
+                 artifactServer=None, artifactServerDir=None, artifactServerPort=None,
+                 usePowerShell=True, **kwargs):
         self.workdir = 'build'
+        self.artifactBuilderName = artifactBuilderName
+        self.artifact = artifact
         self.projectPrefix = projectPrefix
         self.target_config = targetConfig
+        self.artifactDirectory = artifactDirectory
+        self.artifactServer = artifactServer
+        self.artifactServerDir = artifactServerDir
+        self.artifactServerPort = artifactServerPort
+        self.artifactDestination = artifactDestination or artifact
+        self.master = None
+        self.usePowerShell = usePowerShell
         self.kwargs = kwargs
-        DownloadArtifact.__init__(self, **kwargs)
+        self.name = name
+        LoggingBuildStep.__init__(self, **kwargs)
 
     @defer.inlineCallbacks
     def start(self):
         if self.master is None:
             self.master = self.build.builder.botmaster.parent
-        self.failedPartitionsDownloadCount = 0
-        self.partitionsDownloaded = 0
+
         requestId = self.build.requests[0].id
         triggeredBuilderName = self.projectPrefix + self.target_config
         partitionRequests = yield self.master.db.buildrequests.getBuildRequestsTriggeredBy(requestId, triggeredBuilderName)
         buildRequetsIdsWithArtifacts = self._getBuildRequestIdsWithArtifacts(partitionRequests)
+        self.partitionCount = len(buildRequetsIdsWithArtifacts)
         self.stdio_log = self.addLogForRemoteCommands("stdio")
         self.stdio_log.setTimestampsMode(self.timestamp_stdio)
 
@@ -519,9 +530,13 @@ class DownloadArtifactFromChilden(DownloadArtifact, CompositeStepMixin):
             rsync = rsyncWithRetry(self, remotelocation, localdir, self.artifactServerPort)
             yield self._docmd(rsync)
 
-
-        self.step_status.setText("Downloaded %s partitions" % len(partitionRequests))
         self.finished(SUCCESS)
+
+    def finished(self, results):
+        if results == SUCCESS:
+            self.descriptionSuffix = " from %s partitions" % (self.partitionCount,)
+            self.step_status.status_text = 'Downloaded artifacts' + self.descriptionSuffix
+        LoggingBuildStep.finished(self, results)
 
     def _docmd(self, command):
         if not command:
@@ -551,7 +566,6 @@ class DownloadArtifactFromChilden(DownloadArtifact, CompositeStepMixin):
             else:
                 ids.append(artifactbrid)
         return ids
-
 
 class AcquireBuildLocks(LoggingBuildStep):
     name = "Acquire Build Slave"

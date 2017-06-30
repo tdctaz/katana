@@ -326,7 +326,8 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
                 artifactBuilderName='B',
                 projectPrefix='',
                 targetConfig='B',
-                artifact=''
+                artifact='',
+                name='Download partitions'
         ), [br2])
 
         expectedRemote = '\'usr@srv.com:/artifacts/B_2_01_01_1970_00_00_00_+0000/mydir/\''
