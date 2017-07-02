@@ -48,6 +48,8 @@ class PreviousBuildStatus:
     Found = 4
 
 class FindPreviousSuccessBuildMixin():
+    disableUnmergeable = False
+
     @defer.inlineCallbacks
     def _determinePreviousBuild(self, master, build, build_sourcestamps):
         if forceRebuild(build):
@@ -55,10 +57,10 @@ class FindPreviousSuccessBuildMixin():
 
         mergeRequestFn = build.builder.getConfiguredMergeRequestsFn()
 
-        if mergeRequestFn == False:
+        if mergeRequestFn == False and not self.disableUnmergeable:
             defer.returnValue((PreviousBuildStatus.Unmergeable, None))
 
-        elif mergeRequestFn == True: # Default case, with no merge function assigned
+        elif mergeRequestFn == True or mergeRequestFn == False: # Default case, with no merge function assigned
             prevBuildRequest = yield master.db.buildrequests \
                 .getBuildRequestBySourcestamps(buildername=build.builder.config.name,
                                                sourcestamps=build_sourcestamps)
