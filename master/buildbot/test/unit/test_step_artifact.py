@@ -317,6 +317,7 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
     def test_download_artifact_fromchildren_reusing_artifacts(self):
         br2 = fakedb.BuildRequest(id=2, buildsetid=2, buildername="B", triggeredbybrid=1)
         br3 = fakedb.BuildRequest(id=3, buildsetid=3, buildername="B", triggeredbybrid=1, artifactbrid=666)
+        br4 = fakedb.BuildRequest(id=4, buildsetid=4, buildername="B", triggeredbybrid=1, artifactbrid=666)
         br666 = fakedb.BuildRequest(id=666, buildsetid=5, buildername="B", triggeredbybrid=None)
 
         self.setupStep(
@@ -328,7 +329,7 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
                 artifactDirectory='mydir',
                 artifactBuilderName='B',
                 artifactDestination='./base/local'
-        ), [br2, br3, br666])
+        ), [br2, br3, br4, br666])
 
         expectedRemote1 = '\'usr@srv.com:/artifacts/B_2_01_01_1970_00_00_00_+0000/mydir/\''
         expectedRemote2 = '\'usr@srv.com:/artifacts/B_666_01_01_1970_00_00_00_+0000/mydir/\''

@@ -519,10 +519,9 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
         brid = self.build.requests[0].id
         partitionRequests = yield self.master.db.buildrequests.getBuildRequestsTriggeredBy(brid, self.artifactBuilderName)
         buildRequetsIdsWithArtifacts = self._getBuildRequestIdsWithArtifacts(partitionRequests)
-        self.partitionCount = len(buildRequetsIdsWithArtifacts)
         self.stdio_log = self.addLogForRemoteCommands("stdio")
         self.stdio_log.setTimestampsMode(self.timestamp_stdio)
-
+        self.partitionCount = len(buildRequetsIdsWithArtifacts)
         for brid in buildRequetsIdsWithArtifacts:
             buildRequest = yield self.master.db.buildrequests.getBuildRequestById(brid)
 
@@ -585,7 +584,7 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
                 ids.append(br['brid'])
             else:
                 ids.append(artifactbrid)
-        return ids
+        return sorted(set(ids))
 
 class AcquireBuildLocks(LoggingBuildStep):
     name = "Acquire Build Slave"
