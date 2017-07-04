@@ -486,8 +486,12 @@ class DownloadArtifactFromParent(DownloadArtifact):
         br = yield self.master.db.buildrequests.getBuildRequestById(id)
         defer.returnValue(br)
 
-class DownloadArtifactFromChilden(LoggingBuildStep, CompositeStepMixin):
-    def __init__(self, name=None, projectPrefix=None, targetConfig=None, artifactBuilderName=None,
+class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
+    name = "Download Artifact(s)"
+    description="Downloading artifact(s) from the remote artifacts server..."
+    descriptionDone="Artifact(s) downloaded."
+
+    def __init__(self, name=None, projectPrefix=None, artifactBuilderName=None,
                  artifact=None, artifactDirectory=None, artifactDestination=None,
                  artifactServer=None, artifactServerDir=None, artifactServerPort=None,
                  usePowerShell=True, baseLocalDir=None, **kwargs):
@@ -495,7 +499,6 @@ class DownloadArtifactFromChilden(LoggingBuildStep, CompositeStepMixin):
         self.artifactBuilderName = artifactBuilderName
         self.artifact = artifact
         self.projectPrefix = projectPrefix
-        self.target_config = targetConfig
         self.artifactDirectory = artifactDirectory
         self.artifactServer = artifactServer
         self.artifactServerDir = artifactServerDir
@@ -514,8 +517,7 @@ class DownloadArtifactFromChilden(LoggingBuildStep, CompositeStepMixin):
             self.master = self.build.builder.botmaster.parent
 
         brid = self.build.requests[0].id
-        triggeredBuilderName = self.projectPrefix + self.target_config
-        partitionRequests = yield self.master.db.buildrequests.getBuildRequestsTriggeredBy(brid, triggeredBuilderName)
+        partitionRequests = yield self.master.db.buildrequests.getBuildRequestsTriggeredBy(brid, self.artifactBuilderName)
         buildRequetsIdsWithArtifacts = self._getBuildRequestIdsWithArtifacts(partitionRequests)
         self.partitionCount = len(buildRequetsIdsWithArtifacts)
         self.stdio_log = self.addLogForRemoteCommands("stdio")
@@ -523,8 +525,7 @@ class DownloadArtifactFromChilden(LoggingBuildStep, CompositeStepMixin):
 
         for id in buildRequetsIdsWithArtifacts:
             buildRequest = yield self.master.db.buildrequests.getBuildRequestById(id)
-            triggeredBuilderName = self.projectPrefix + self.target_config
-            artifactPath = "%s_%s_%s" % (safeTranslate(triggeredBuilderName),
+            artifactPath = "%s_%s_%s" % (safeTranslate(self.artifactBuilderName),
                                          id, FormatDatetime(buildRequest["submitted_at"]))
 
             artifactPath += "/%s" % self.artifactDirectory
