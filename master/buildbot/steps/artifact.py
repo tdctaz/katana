@@ -487,28 +487,28 @@ class DownloadArtifactFromParent(DownloadArtifact):
         defer.returnValue(br)
 
 class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
-    name = "Download Artifact(s)"
-    description="Downloading artifact(s) from the remote artifacts server..."
-    descriptionDone="Artifact(s) downloaded."
+    name = "Download Artifact(s) from triggered builds"
+    description="Downloading artifact(s) from triggered builds..."
+    descriptionDone="Downloaded artifact(s) from triggered builds"
 
-    def __init__(self, name=None, projectPrefix=None, artifactBuilderName=None,
-                 artifact=None, artifactDirectory=None, artifactDestination=None,
-                 artifactServer=None, artifactServerDir=None, artifactServerPort=None,
-                 usePowerShell=True, baseLocalDir=None, **kwargs):
-        self.workdir = 'build'
+    def __init__(self,
+                 artifactServer,
+                 artifactServerPort,
+                 artifactServerDir,
+                 artifactBuilderName,
+                 workDir='',
+                 artifactDestination=None,
+                 artifactDirectory=None,
+                 usePowerShell=True, **kwargs):
+        self.workDir = workDir
         self.artifactBuilderName = artifactBuilderName
-        self.artifact = artifact
-        self.projectPrefix = projectPrefix
         self.artifactDirectory = artifactDirectory
         self.artifactServer = artifactServer
         self.artifactServerDir = artifactServerDir
         self.artifactServerPort = artifactServerPort
-        self.artifactDestination = artifactDestination or artifact
+        self.artifactDestination = artifactDestination
         self.master = None
         self.usePowerShell = usePowerShell
-        self.kwargs = kwargs
-        self.name = name
-        self.baseLocalDir = baseLocalDir
         LoggingBuildStep.__init__(self, **kwargs)
 
     @defer.inlineCallbacks
@@ -523,16 +523,14 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
         self.stdio_log = self.addLogForRemoteCommands("stdio")
         self.stdio_log.setTimestampsMode(self.timestamp_stdio)
 
-        for id in buildRequetsIdsWithArtifacts:
-            buildRequest = yield self.master.db.buildrequests.getBuildRequestById(id)
-            artifactPath = "%s_%s_%s" % (safeTranslate(self.artifactBuilderName),
-                                         id, FormatDatetime(buildRequest["submitted_at"]))
+        for brid in buildRequetsIdsWithArtifacts:
+            buildRequest = yield self.master.db.buildrequests.getBuildRequestById(brid)
 
-            artifactPath += "/%s" % self.artifactDirectory
-            remotelocation = getRemoteLocation(self.artifactServer, self.artifactServerDir, artifactPath, "")
-            localdir = self.baseLocalDir + '/' + str(id)
+            remotelocation = self._getRemoteLocation(buildRequest)
 
-            command = [mkDir(self), '-p', '\''+ localdir + '\'']
+            localdir = self._getLocalDir(brid)
+
+            command = [mkDir(self), '-p', localdir]
             yield self._docmd(command)
 
             rsync = rsyncWithRetry(self, remotelocation, localdir, self.artifactServerPort)
@@ -546,11 +544,25 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
             self.step_status.status_text = 'Downloaded artifacts' + self.descriptionSuffix
         LoggingBuildStep.finished(self, results)
 
+    def _getLocalDir(self, brid):
+        localdir = str(brid)
+        if self.artifactDestination:
+            localdir = self.artifactDestination + '/' + localdir
+        return localdir
+
+    def _getRemoteLocation(self, buildRequest):
+        artifactPath = "%s_%s_%s" % (safeTranslate(self.artifactBuilderName),
+                                     buildRequest["brid"], FormatDatetime(buildRequest["submitted_at"]))
+        if self.artifactDirectory:
+            artifactPath += "/%s" % self.artifactDirectory
+
+        return getRemoteLocation(self.artifactServer, self.artifactServerDir, artifactPath, "")
+
     def _docmd(self, command):
         if not command:
             raise ValueError("No command specified")
         from buildbot.process import buildstep
-        cmd = buildstep.RemoteShellCommand(self.workdir,
+        cmd = buildstep.RemoteShellCommand(self.workDir,
                 command, collectStdout=False,
                 collectStderr=True)
         cmd.useLog(self.stdio_log, False)
