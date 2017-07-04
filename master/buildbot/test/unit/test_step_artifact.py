@@ -315,7 +315,14 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
         return self.runStep()
 
     def test_download_artifact_fromchildren_reusing_artifacts(self):
-        br2 = fakedb.BuildRequest(id=2, buildsetid=2, buildername="B", triggeredbybrid=1)
+        # In this test we expect DownloadArtifactsFromChildren to download artifacts from following build request ids:
+        # '2' because `artifactbrid` is null which means that build request contains artifacts on itself
+        # '666' - because build request '3' reused it
+        # The test data also include and build request '4', referring '666'.
+        # The test also checks that it will not be downloaded.
+        # We don't want to download the same artifact more than once
+
+        br2 = fakedb.BuildRequest(id=2, buildsetid=2, buildername="B", triggeredbybrid=1, artifactbrid=None)
         br3 = fakedb.BuildRequest(id=3, buildsetid=3, buildername="B", triggeredbybrid=1, artifactbrid=666)
         br4 = fakedb.BuildRequest(id=4, buildsetid=4, buildername="B", triggeredbybrid=1, artifactbrid=666)
         br666 = fakedb.BuildRequest(id=666, buildsetid=5, buildername="B", triggeredbybrid=None)
