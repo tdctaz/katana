@@ -516,17 +516,14 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
         if self.master is None:
             self.master = self.build.builder.botmaster.parent
 
-        brid = self.build.requests[0].id
-        partitionRequests = yield self.master.db.buildrequests.getBuildRequestsTriggeredBy(brid, self.artifactBuilderName)
+        self._setUpLogs()
+
+        partitionRequests = yield self.master.db.buildrequests.getBuildRequestsTriggeredBy(self.build.requests[0].id, self.artifactBuilderName)
         buildRequetsIdsWithArtifacts = self._getBuildRequestIdsWithArtifacts(partitionRequests)
-        self.stdio_log = self.addLogForRemoteCommands("stdio")
-        self.stdio_log.setTimestampsMode(self.timestamp_stdio)
         self.partitionCount = len(buildRequetsIdsWithArtifacts)
         for brid in buildRequetsIdsWithArtifacts:
             buildRequest = yield self.master.db.buildrequests.getBuildRequestById(brid)
-
             remotelocation = self._getRemoteLocation(buildRequest)
-
             localdir = self._getLocalDir(brid)
 
             command = [mkDir(self), '-p', localdir]
@@ -542,6 +539,10 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
             self.descriptionSuffix = " from %s partitions" % (self.partitionCount,)
             self.step_status.status_text = 'Downloaded artifacts' + self.descriptionSuffix
         LoggingBuildStep.finished(self, results)
+
+    def _setUpLogs(self):
+        self.stdio_log = self.addLogForRemoteCommands("stdio")
+        self.stdio_log.setTimestampsMode(self.timestamp_stdio)
 
     def _getLocalDir(self, brid):
         localdir = str(brid)
