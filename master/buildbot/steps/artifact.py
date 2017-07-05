@@ -570,7 +570,6 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
         def evaluateCommand(cmd):
             if cmd.didFail():
                 raise buildstep.BuildStepFailed()
-                return cmd.rc
 
             return cmd.rc
         d.addCallback(lambda _: evaluateCommand(cmd))
