@@ -1,6 +1,6 @@
 from buildbot.steps.slave import CompositeStepMixin
 
-from buildbot.process.buildstep import LoggingBuildStep, SUCCESS, SKIPPED
+from buildbot.process.buildstep import LoggingBuildStep, SUCCESS, SKIPPED, FAILURE
 from twisted.internet import defer
 from buildbot.steps.shell import ShellCommand
 import re
@@ -499,7 +499,7 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
                  workDir='',
                  artifactDestination=None,
                  artifactDirectory=None,
-                 usePowerShell=True, **kwargs):
+                 usePowerShell=True):
         self.workDir = workDir
         self.artifactBuilderName = artifactBuilderName
         self.artifactDirectory = artifactDirectory
@@ -509,7 +509,7 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
         self.artifactDestination = artifactDestination
         self.master = None
         self.usePowerShell = usePowerShell
-        LoggingBuildStep.__init__(self, **kwargs)
+        LoggingBuildStep.__init__(self)
 
     @defer.inlineCallbacks
     def start(self):
@@ -523,12 +523,12 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
         self.partitionCount = len(buildRequetsIdsWithArtifacts)
         for brid in buildRequetsIdsWithArtifacts:
             buildRequest = yield self.master.db.buildrequests.getBuildRequestById(brid)
-            remotelocation = self._getRemoteLocation(buildRequest)
-            localdir = self._getLocalDir(brid)
 
+            localdir = self._getLocalDir(brid)
             command = [mkDir(self), '-p', localdir]
             yield self._docmd(command)
 
+            remotelocation = self._getRemoteLocation(buildRequest)
             rsync = rsyncWithRetry(self, remotelocation, localdir, self.artifactServerPort)
             yield self._docmd(rsync)
 
@@ -569,8 +569,8 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
         d = self.runCommand(cmd)
         def evaluateCommand(cmd):
             if cmd.didFail():
-                buildstep.BuildStepFailed()
-                return cmd.stderr
+                raise buildstep.BuildStepFailed()
+                return cmd.rc
 
             return cmd.rc
         d.addCallback(lambda _: evaluateCommand(cmd))
