@@ -486,6 +486,7 @@ class DownloadArtifactFromParent(DownloadArtifact):
         br = yield self.master.db.buildrequests.getBuildRequestById(id)
         defer.returnValue(br)
 
+
 class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
     name = "Download Artifact(s) from triggered builds"
     description="Downloading artifact(s) from triggered builds..."
@@ -493,10 +494,10 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
 
     def __init__(self,
                  artifactServer,
-                 artifactServerPort,
                  artifactServerDir,
                  artifactBuilderName,
                  workDir='',
+                 artifactServerPort=None,
                  artifactDestination=None,
                  artifactDirectory=None,
                  usePowerShell=True,
