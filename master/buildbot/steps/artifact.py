@@ -499,7 +499,8 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
                  workDir='',
                  artifactDestination=None,
                  artifactDirectory=None,
-                 usePowerShell=True):
+                 usePowerShell=True,
+                 **kwargs):
         self.workDir = workDir
         self.artifactBuilderName = artifactBuilderName
         self.artifactDirectory = artifactDirectory
@@ -509,7 +510,7 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
         self.artifactDestination = artifactDestination
         self.master = None
         self.usePowerShell = usePowerShell
-        LoggingBuildStep.__init__(self)
+        LoggingBuildStep.__init__(self, **kwargs)
 
     @defer.inlineCallbacks
     def start(self):
