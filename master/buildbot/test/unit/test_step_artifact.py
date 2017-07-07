@@ -365,7 +365,7 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
             ExpectShell.log('stdio', stdout='')
         )
 
-        self.expectOutcome(result=SUCCESS,  status_text='Downloaded 2 partitions')
+        self.expectOutcome(result=SUCCESS, status_text=['Downloaded artifacts from 2 partitions'])
         return self.runStep()
 
     def test_download_artifact_fromchildren_windows(self):
@@ -398,7 +398,7 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
             ExpectShell.log('stdio', stdout='')
         )
 
-        self.expectOutcome(result=SUCCESS,  status_text='Downloaded 1 partitions')
+        self.expectOutcome(result=SUCCESS,  status_text=['Downloaded artifacts from 1 partitions'])
         return self.runStep()
 
     def test_download_artifact_fromchildren_defaultparams(self):
@@ -428,5 +428,5 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
             ExpectShell.log('stdio', stdout='')
         )
 
-        self.expectOutcome(result=SUCCESS,  status_text='Downloaded 1 partitions')
+        self.expectOutcome(result=SUCCESS, status_text=['Downloaded artifacts from 1 partitions'])
         return self.runStep()

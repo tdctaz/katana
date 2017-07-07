@@ -257,6 +257,7 @@ class CheckArtifactExists(ShellCommandResumeBuild, FindPreviousSuccessBuildMixin
             self.finished(SUCCESS)
 
     def _previousBuildFound(self, prevBuildRequest):
+        self.artifactBuildrequest = prevBuildRequest
         self.step_status.setText(["Artifact has been already generated."])
 
         if self.artifactBuildrequest["submitted_at"] > ARTIFACT_LOCATION_CHANGE_DATE:
@@ -514,7 +515,7 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
         partitionRequests = yield self.master.db.buildrequests.getBuildRequestsTriggeredBy(self.build.requests[0].id, self.artifactBuilderName)
         buildRequetsIdsWithArtifacts = self._getBuildRequestIdsWithArtifacts(partitionRequests)
         self.partitionCount = len(buildRequetsIdsWithArtifacts)
-        self.step_status.setText(["Downloading artifacts", " from %d triggered partitions" % self.partitionCount])
+        self.step_status.setText(["Downloading artifacts from %d triggered partitions" % self.partitionCount])
         for brid in buildRequetsIdsWithArtifacts:
             buildRequest = yield self.master.db.buildrequests.getBuildRequestById(brid)
 
@@ -530,7 +531,7 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
 
     def finished(self, results):
         if results == SUCCESS:
-            self.step_status.setText(["Downloaded artifacts", " from %s partitions" % self.partitionCount])
+            self.step_status.setText(["Downloaded artifacts from %s partitions" % self.partitionCount])
         LoggingBuildStep.finished(self, results)
 
     def _setUpLogs(self):
