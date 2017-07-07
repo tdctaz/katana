@@ -478,15 +478,6 @@ class DownloadArtifact(ShellCommand):
         defer.returnValue(br)
 
 
-class DownloadArtifactFromParent(DownloadArtifact):
-    @defer.inlineCallbacks
-    def _getBuildRequest(self):
-        triggeredbybrid = self.build.requests[0].id
-        id = yield self.master.db.buildrequests.getTriggeredById(triggeredbybrid)
-        br = yield self.master.db.buildrequests.getBuildRequestById(id)
-        defer.returnValue(br)
-
-
 class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
     name = "Download Artifact(s) from triggered builds"
     description="Downloading artifact(s) from triggered builds..."
