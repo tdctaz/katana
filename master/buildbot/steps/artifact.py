@@ -523,6 +523,7 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
         partitionRequests = yield self.master.db.buildrequests.getBuildRequestsTriggeredBy(self.build.requests[0].id, self.artifactBuilderName)
         buildRequetsIdsWithArtifacts = self._getBuildRequestIdsWithArtifacts(partitionRequests)
         self.partitionCount = len(buildRequetsIdsWithArtifacts)
+        self.step_status.setText(["Downloading artifacts", " from %d triggered partitions" % self.partitionCount])
         for brid in buildRequetsIdsWithArtifacts:
             buildRequest = yield self.master.db.buildrequests.getBuildRequestById(brid)
 
@@ -538,8 +539,7 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
 
     def finished(self, results):
         if results == SUCCESS:
-            self.descriptionSuffix = " from %s partitions" % (self.partitionCount,)
-            self.step_status.status_text = 'Downloaded artifacts' + self.descriptionSuffix
+            self.step_status.setText(["Downloaded artifacts", " from %s partitions" % self.partitionCount])
         LoggingBuildStep.finished(self, results)
 
     def _setUpLogs(self):
