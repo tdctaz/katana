@@ -837,24 +837,6 @@ class BuildRequestsConnectorComponent(base.DBConnectorComponent):
 
         return self.db.pool.do(thd)
 
-    def getTriggeredById(self, id):
-        def thd(conn):
-            buildrequests_tbl = self.db.model.buildrequests
-
-            stmt_br = sa.select([buildrequests_tbl]) \
-                .where(buildrequests_tbl.c.id == id)
-
-            res = conn.execute(stmt_br)
-            row = res.fetchone()
-            triggeredbybrid = None
-            if row:
-                triggeredbybrid = row.triggeredbybrid
-
-            res.close()
-            return triggeredbybrid
-
-        return self.db.pool.do(thd)
-
     def getBuildRequestsTriggeredByScheduler(self, schedulername, stepname, triggeredbybrid):
         def thd(conn):
             buildrequests_tbl = self.db.model.buildrequests
