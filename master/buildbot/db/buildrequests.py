@@ -508,13 +508,12 @@ class BuildRequestsConnectorComponent(base.DBConnectorComponent):
                                                                   sourcestampsets_tbl=sourcestampsets_tbl,
                                                                   buildsets_tbl=buildsets_tbl)
 
-            q = sa.select([buildrequests_tbl, claims_tbl]) \
+            q = sa.select([buildrequests_tbl]) \
                 .where(buildrequests_tbl.c.buildsetid.in_(stmt)) \
                 .where(buildrequests_tbl.c.complete == 1) \
                 .where(buildrequests_tbl.c.results == 0) \
                 .where(buildrequests_tbl.c.buildername == buildername) \
                 .where(buildrequests_tbl.c.artifactbrid == None) \
-                .select_from(buildrequests_tbl.outerjoin(claims_tbl, (buildrequests_tbl.c.id == claims_tbl.c.brid))) \
                 .order_by(sa.desc(buildrequests_tbl.c.id))
 
             res = conn.execute(q)
