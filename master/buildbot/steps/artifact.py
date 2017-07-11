@@ -488,13 +488,13 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
                  artifactServer,
                  artifactServerDir,
                  artifactBuilderName,
-                 workDir='',
+                 workdir='',
                  artifactServerPort=None,
                  artifactDestination=None,
                  artifactDirectory=None,
                  usePowerShell=True,
                  **kwargs):
-        self.workDir = workDir
+        self.workdir = workdir
         self.artifactBuilderName = artifactBuilderName
         self.artifactDirectory = artifactDirectory
         self.artifactServer = artifactServer
@@ -556,7 +556,7 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
         if not command:
             raise ValueError("No command specified")
         from buildbot.process import buildstep
-        cmd = buildstep.RemoteShellCommand(self.workDir,
+        cmd = buildstep.RemoteShellCommand(self.workdir,
                 command, collectStdout=False,
                 collectStderr=True)
         cmd.useLog(self.stdio_log, False)
