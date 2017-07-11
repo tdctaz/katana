@@ -328,7 +328,7 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
 
         self.setupStep(
             artifact.DownloadArtifactsFromChildren(
-                workDir='build',
+                workdir='build',
                 artifactServer='usr@srv.com',
                 artifactServerDir='/artifacts',
                 artifactServerPort=22,
@@ -373,7 +373,7 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
 
         self.setupStep(
             artifact.DownloadArtifactsFromChildren(
-                workDir='build',
+                workdir='build',
                 artifactServer='usr@srv.com',
                 artifactServerDir='/artifacts',
                 artifactServerPort=22,
@@ -406,7 +406,7 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
 
         self.setupStep(
             artifact.DownloadArtifactsFromChildren(
-                workDir='build',
+                workdir='build',
                 artifactServer='usr@srv.com',
                 artifactServerDir='/artifacts',
                 artifactServerPort=22,
