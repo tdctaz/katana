@@ -10,6 +10,7 @@ from buildbot.process import properties
 from buildbot.process.slavebuilder import IDLE, BUILDING
 from buildbot.process.buildrequest import BuildRequest
 from buildbot.steps.resumebuild import ResumeBuild, ShellCommandResumeBuild
+import ntpath
 
 # Change artifact location in August
 # datetime.datetime(2017, 7, 31, 23, 59, 59, tzinfo=UTC)
@@ -364,7 +365,6 @@ def rsyncWithRetry(step, origin, destination, port=None):
 
 def mkDir(step, dir):
     if _isWindowsSlave(step):
-        import ntpath
         return ['mkdir', ntpath.normpath(dir) ]
     else:
         return ['mkdir', '-p', dir]
