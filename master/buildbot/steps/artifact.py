@@ -362,11 +362,11 @@ def rsyncWithRetry(step, origin, destination, port=None):
 
     return retryCommandLinuxOS(rsync_command)
 
-def mkDir(step):
+def mkDir(step, dir):
     if _isWindowsSlave(step):
-        return r'C:\cygwin64\bin\mkdir.exe'
+        return ['mkdir', dir.replace("/", "\\")]
     else:
-        return 'mkdir'
+        return ['mkdir', '-p', dir]
 
 
 def getRemoteLocation(artifactServer, artifactServerDir, artifactPath, artifact):
@@ -520,7 +520,7 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
             buildRequest = yield self.master.db.buildrequests.getBuildRequestById(brid)
 
             localdir = self._getLocalDir(brid)
-            command = [mkDir(self), '-p', localdir]
+            command = mkDir(self, localdir)
             yield self._docmd(command)
 
             remotelocation = self._getRemoteLocation(buildRequest)
