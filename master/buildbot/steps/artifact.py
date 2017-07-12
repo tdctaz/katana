@@ -364,7 +364,8 @@ def rsyncWithRetry(step, origin, destination, port=None):
 
 def mkDir(step, dir):
     if _isWindowsSlave(step):
-        return ['mkdir', dir.replace("/", "\\")]
+        import ntpath
+        return ['mkdir', ntpath.normpath(dir) ]
     else:
         return ['mkdir', '-p', dir]
 

@@ -384,10 +384,11 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
 
         expectedRemote = '\'usr@srv.com:/artifacts/B_2_01_01_1970_00_00_00_+0000/mydir/\''
         expectedLocal = './base/local/2'
+        expectedLocalMkDirPath = r'base\local\2'
 
         self.expectCommands(
             ExpectShell(workdir='build', usePTY='slave-config',
-                        command=['mkdir', expectedLocal.replace('/','\\')]) +
+                        command=['mkdir', expectedLocalMkDirPath]) +
             0,
             ExpectShell(workdir='build', usePTY='slave-config',
                         command='powershell.exe -C for ($i=1; $i -le  5; $i++) { rsync -var --progress --partial ' +
