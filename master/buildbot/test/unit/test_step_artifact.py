@@ -387,7 +387,7 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
 
         self.expectCommands(
             ExpectShell(workdir='build', usePTY='slave-config',
-                        command=[r'C:\cygwin64\bin\mkdir.exe', '-p', expectedLocal]) +
+                        command=['mkdir', expectedLocal.replace('/','\\')]) +
             0,
             ExpectShell(workdir='build', usePTY='slave-config',
                         command='powershell.exe -C for ($i=1; $i -le  5; $i++) { rsync -var --progress --partial ' +
