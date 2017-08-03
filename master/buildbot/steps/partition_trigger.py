@@ -14,6 +14,7 @@
 # Copyright Buildbot Team Members
 
 from buildbot import config
+from buildbot.process.buildstep import LoggingBuildStep
 from buildbot.steps.trigger import Trigger
 
 class PartitionTrigger(Trigger):
@@ -59,3 +60,12 @@ class PartitionTrigger(Trigger):
         for key, value in partitionProperties.iteritems():
             propertiesToSetForPartition.setProperty(key, value, "PartitionTrigger")
         return propertiesToSetForPartition
+
+    def finished(self, results):
+        from buildbot.status.results import SUCCESS, RESUME, DEPENDENCY_FAILURE, SKIPPED
+        shouldResumeBuild = results == SUCCESS or results == SKIPPED or results == DEPENDENCY_FAILURE
+        if shouldResumeBuild:
+            text = ["Build Will Be Resumed"]
+            self.step_status.stepFinished(results)
+            self.build.buildFinished(text, RESUME)
+        LoggingBuildStep.finished(self, results)
