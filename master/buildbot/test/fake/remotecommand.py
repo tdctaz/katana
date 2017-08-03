@@ -67,6 +67,9 @@ class FakeRemoteCommand(object):
     def didFail(self):
         return self.results() == FAILURE
 
+    def set_content_type(self, content_type):
+        self.content_type = content_type
+
     def fakeLogData(self, step, log, header='', stdout='', stderr=''):
         # note that this should not be used in the same test as useLog(Delayed)
         self.logs[log] = l = FakeLogFile(log, step)
@@ -152,6 +155,9 @@ class FakeLogFile(object):
 
     def finish(self):
         pass
+
+    def set_content_type(self, content_type):
+        self.content_type = content_type
 
     def fakeData(self, header='', stdout='', stderr=''):
         if header:
