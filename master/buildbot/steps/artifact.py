@@ -546,10 +546,13 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
         return localdir
 
     def _getRemoteLocation(self, buildRequest):
-        artifactPath = "%s_%s_%s" % (safeTranslate(self.artifactBuilderName),
-                                     buildRequest["brid"], FormatDatetime(buildRequest["submitted_at"]))
-        if self.artifactDirectory:
-            artifactPath += "/%s" % self.artifactDirectory
+        artifactPath = '';
+        if buildRequest["submitted_at"] > ARTIFACT_LOCATION_CHANGE_DATE:
+            artifactPath = "%s/%s_%s" % (
+            safeTranslate(self.artifactBuilderName), buildRequest['brid'], FormatDatetime(buildRequest["submitted_at"]))
+        else:
+            artifactPath = "%s_%s_%s" % (
+            safeTranslate(self.artifactBuilderName), buildRequest['brid'], FormatDatetime(buildRequest["submitted_at"]))
 
         return getRemoteLocation(self.artifactServer, self.artifactServerDir, artifactPath, "")
 
