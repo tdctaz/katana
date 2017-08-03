@@ -128,9 +128,10 @@ class BuildStepMixin(object):
             return l
         step.addLog = addLog
 
-        def addHTMLLog(name, html):
+        def addHTMLLog(name, html, content_type=None):
             l = remotecommand.FakeLogFile(name, step)
             l.addStdout(html)
+            l.set_content_type(content_type)
             ss.logs[name] = l
             return l
         step.addHTMLLog = addHTMLLog
