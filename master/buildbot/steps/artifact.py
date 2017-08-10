@@ -10,6 +10,7 @@ from buildbot.process import properties
 from buildbot.process.slavebuilder import IDLE, BUILDING
 from buildbot.process.buildrequest import BuildRequest
 from buildbot.steps.resumebuild import ResumeBuild, ShellCommandResumeBuild
+from twisted.python import log
 import ntpath
 
 # Change artifact location in August
@@ -61,20 +62,24 @@ class FindPreviousSuccessBuildMixin():
         mergeRequestFn = build.builder.getConfiguredMergeRequestsFn()
 
         if mergeRequestFn == False and not self.disableUnmergeable:
+            log.msg("[brid: %d] is forced - skipping previous build" % build.requests[0].id)
             defer.returnValue((PreviousBuildStatus.Unmergeable, None))
 
         elif mergeRequestFn == True or mergeRequestFn == False: # Default case, with no merge function assigned
+            log.msg("[brid: %d] is searcing for previous successful build without merge function" % build.requests[0].id)
             prevBuildRequest = yield master.db.buildrequests \
                 .getBuildRequestBySourcestamps(buildername=build.builder.config.name,
                                                sourcestamps=build_sourcestamps)
             if prevBuildRequest:
+                log.msg("[brid: %d] previous successful build [%s] found" % (build.requests[0].id, prevBuildRequest['brid']))
                 defer.returnValue((PreviousBuildStatus.Found, prevBuildRequest))
 
         else: # Custom merge function assigned
+            log.msg("[brid: %d] is searcing for previous successful build with merge function" % build.requests[0].id)
             prevBuildRequests = yield master.db.buildrequests \
                 .getBuildRequestsBySourcestamps(buildername=build.builder.config.name,
                                                 sourcestamps = build_sourcestamps)
-            if len(prevBuildRequests) > 0 and len(build.requests) > 0:
+            if len(prevBuildRequests) > 0:
                 req1 = build.requests[0]
                 buildSetIds = list(set([br['buildsetid'] for br in prevBuildRequests]))
                 buildSets = yield master.db.buildsets.getBuildsetsByIds(buildSetIds)
@@ -82,8 +87,11 @@ class FindPreviousSuccessBuildMixin():
                 for prevBuildRequest in prevBuildRequests:
                     req2 = self._getBuildRequest(master, prevBuildRequest, buildSets, buildSetsProperties, req1.sources)
                     if (mergeRequestFn(build.builder, req1, req2)):
+                        log.msg("[brid: %d] previous successful build [%s] found with matching properties" % (build.requests[0].id, prevBuildRequest['brid']))
                         defer.returnValue((PreviousBuildStatus.Found, prevBuildRequest))
+                log.msg("[brid: %d] found %d previous successful builds , but merge function did not match" % (build.requests[0].id, len(prevBuildRequests)))
 
+        log.msg("[brid: %d] found no previous successful builds" % build.requests[0].id)
         defer.returnValue((PreviousBuildStatus.NotFound, None))
 
     def _updateMergedBuildRequests(self, master, build):
@@ -243,6 +251,7 @@ class CheckArtifactExists(ShellCommandResumeBuild, FindPreviousSuccessBuildMixin
 
         (previousBuildRequestStatus, prevBuildRequest) = yield self._determinePreviousBuild(self.master, self.build, self.build_sourcestamps)
         if previousBuildRequestStatus == PreviousBuildStatus.Found:
+            log.msg("[brid %d] is searching for matching artifacts" % self.build.requests[0].id)
             yield self._previousBuildFound(prevBuildRequest)
         elif previousBuildRequestStatus == PreviousBuildStatus.Forced:
             self._updateMergedBuildRequests(self.master, self.build)

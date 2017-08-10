@@ -479,6 +479,8 @@ class BuildRequestsConnectorComponent(base.DBConnectorComponent):
             q = sa.select(columns=[buildrequests_tbl]) \
                 .where(buildrequests_tbl.c.id == last_br)
 
+            log.msg("Executing 'getBuildRequestBySourcestamps': %s" % self.getSQLExpression(q))
+
             res = conn.execute(q)
             row = res.fetchone()
             buildrequest = None
@@ -515,6 +517,8 @@ class BuildRequestsConnectorComponent(base.DBConnectorComponent):
                 .where(buildrequests_tbl.c.buildername == buildername) \
                 .where(buildrequests_tbl.c.artifactbrid == None) \
                 .order_by(sa.desc(buildrequests_tbl.c.id))
+
+            log.msg("Executing 'getBuildRequestsBySourcestamps': %s" % self.getSQLExpression(q))
 
             res = conn.execute(q)
             rows = res.fetchall()
