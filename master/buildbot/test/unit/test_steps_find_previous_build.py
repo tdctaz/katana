@@ -66,6 +66,7 @@ class TestFindPreviousSuccessfulBuild(steps.BuildStepMixin, config.ConfigErrorsM
         def getSourceValues():
             return [mock.Mock()]
         buildRequest = mock.Mock()
+        buildRequest.id = 1
         buildRequest.sources.values = getSourceValues
         self.build.requests = [
             buildRequest
