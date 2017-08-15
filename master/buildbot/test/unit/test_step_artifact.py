@@ -337,8 +337,8 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
                 artifactDestination='./base/local',
         ), [br2, br3, br4, br666])
 
-        expectedRemote1 = '\'usr@srv.com:/artifacts/B_2_01_01_1970_00_00_00_+0000/\''
-        expectedRemote2 = '\'usr@srv.com:/artifacts/B_666_01_01_1970_00_00_00_+0000/\''
+        expectedRemote1 = '\'usr@srv.com:/artifacts/B/2_01_01_1970_00_00_00_+0000/mydir/\''
+        expectedRemote2 = '\'usr@srv.com:/artifacts/B/666_01_01_1970_00_00_00_+0000/mydir/\''
 
         expectedLocal1 = './base/local/2'
         expectedLocal2 = './base/local/666'
@@ -382,7 +382,7 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
                 artifactDestination='./base/local'
         ), [br2], winslave=True)
 
-        expectedRemote = '\'usr@srv.com:/artifacts/B_2_01_01_1970_00_00_00_+0000/\''
+        expectedRemote = '\'usr@srv.com:/artifacts/B/2_01_01_1970_00_00_00_+0000/mydir/\''
         expectedLocal = './base/local/2'
         expectedLocalMkDirPath = r'base\local\2'
 
@@ -414,7 +414,7 @@ class TestArtifactSteps(steps.BuildStepMixin, unittest.TestCase):
                 artifactBuilderName='B',
         ), [br2])
 
-        expectedRemote = '\'usr@srv.com:/artifacts/B_2_01_01_1970_00_00_00_+0000/\''
+        expectedRemote = '\'usr@srv.com:/artifacts/B/2_01_01_1970_00_00_00_+0000/\''
         expectedLocal = '2'
 
         self.expectCommands(

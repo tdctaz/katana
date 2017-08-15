@@ -537,17 +537,18 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
             command = mkDir(self, localdir)
             yield self._docmd(command)
 
-            artifactPath = self._getRemoteLocation(buildRequest)
-
-            remotelocation = getRemoteLocation(self.artifactServer, self.artifactServerDir, artifactPath, self.artifact)
+            artifactPath = self._getArtifactPath(buildRequest)
+            remotelocation = self._getRemoteLocation(artifactPath)
 
             rsync = rsyncWithRetry(self, remotelocation, localdir, self.artifactServerPort)
             yield self._docmd(rsync)
 
-            artifactsMap[localdir] = artifactPath + '/' + self.artifact
+            if self.artifact:
+                artifactsMap[localdir] = artifactPath + '/' + self.artifact
+            else:
+                artifactsMap[localdir] = artifactPath + '/'
 
         self.build.setProperty('artifactsMap', artifactsMap, 'DownloadArtifactsFromChildren')
-
         self.finished(SUCCESS)
 
     def finished(self, results):
@@ -565,13 +566,21 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
             localdir = self.artifactDestination + '/' + localdir
         return localdir
 
-    def _getRemoteLocation(self, buildRequest):
+    def _getArtifactPath(self, buildRequest):
         artifactPath = "%s/%s_%s" % (
-        safeTranslate(self.artifactBuilderName), buildRequest['brid'], FormatDatetime(buildRequest["submitted_at"]))
+            safeTranslate(self.artifactBuilderName),
+            buildRequest['brid'],
+            FormatDatetime(buildRequest["submitted_at"])
+        )
+        if self.artifactDirectory:
+            artifactPath += "/%s" % self.artifactDirectory
         return artifactPath
 
-
-        return getRemoteLocation(self.artifactServer, self.artifactServerDir, artifactPath, "")
+    def _getRemoteLocation(self,  artifactPath):
+        if (self.artifact):
+            return getRemoteLocation(self.artifactServer, self.artifactServerDir, artifactPath, self.artifact)
+        else:
+            return getRemoteLocation(self.artifactServer, self.artifactServerDir, artifactPath, "")
 
     def _docmd(self, command):
         if not command:
