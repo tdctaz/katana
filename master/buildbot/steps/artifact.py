@@ -502,9 +502,11 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
                  artifactServerPort=None,
                  artifactDestination=None,
                  artifactDirectory=None,
+                 artifact=None,
                  usePowerShell=True,
                  **kwargs):
         self.workdir = workdir
+        self.artifact = artifact
         self.artifactBuilderName = artifactBuilderName
         self.artifactDirectory = artifactDirectory
         self.artifactServer = artifactServer
@@ -526,6 +528,8 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
         buildRequetsIdsWithArtifacts = self._getBuildRequestIdsWithArtifacts(partitionRequests)
         self.partitionCount = len(buildRequetsIdsWithArtifacts)
         self.step_status.setText(["Downloading artifacts from %d triggered partitions" % self.partitionCount])
+        artifactsMap = {}
+        self.build.setProperty("artifactsMap", {})
         for brid in buildRequetsIdsWithArtifacts:
             buildRequest = yield self.master.db.buildrequests.getBuildRequestById(brid)
 
@@ -533,9 +537,16 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
             command = mkDir(self, localdir)
             yield self._docmd(command)
 
-            remotelocation = self._getRemoteLocation(buildRequest)
+            artifactPath = self._getRemoteLocation(buildRequest)
+
+            remotelocation = getRemoteLocation(self.artifactServer, self.artifactServerDir, artifactPath, self.artifact)
+
             rsync = rsyncWithRetry(self, remotelocation, localdir, self.artifactServerPort)
             yield self._docmd(rsync)
+
+            artifactsMap[localdir] = artifactPath + '/' + self.artifact
+
+        self.build.setProperty('artifactsMap', artifactsMap, 'DownloadArtifactsFromChildren')
 
         self.finished(SUCCESS)
 
@@ -555,13 +566,10 @@ class DownloadArtifactsFromChildren(LoggingBuildStep, CompositeStepMixin):
         return localdir
 
     def _getRemoteLocation(self, buildRequest):
-        artifactPath = '';
-        if buildRequest["submitted_at"] > ARTIFACT_LOCATION_CHANGE_DATE:
-            artifactPath = "%s/%s_%s" % (
-            safeTranslate(self.artifactBuilderName), buildRequest['brid'], FormatDatetime(buildRequest["submitted_at"]))
-        else:
-            artifactPath = "%s_%s_%s" % (
-            safeTranslate(self.artifactBuilderName), buildRequest['brid'], FormatDatetime(buildRequest["submitted_at"]))
+        artifactPath = "%s/%s_%s" % (
+        safeTranslate(self.artifactBuilderName), buildRequest['brid'], FormatDatetime(buildRequest["submitted_at"]))
+        return artifactPath
+
 
         return getRemoteLocation(self.artifactServer, self.artifactServerDir, artifactPath, "")
 
