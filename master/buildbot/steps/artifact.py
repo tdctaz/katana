@@ -66,7 +66,7 @@ class FindPreviousSuccessBuildMixin():
             defer.returnValue((PreviousBuildStatus.Unmergeable, None))
 
         elif mergeRequestFn == True or mergeRequestFn == False: # Default case, with no merge function assigned
-            log.msg("[brid: %d] is searcing for previous successful build without merge function" % build.requests[0].id)
+            log.msg("[brid: %d] is searching for previous successful build without merge function" % build.requests[0].id)
             prevBuildRequest = yield master.db.buildrequests \
                 .getBuildRequestBySourcestamps(buildername=build.builder.config.name,
                                                sourcestamps=build_sourcestamps)
@@ -75,7 +75,7 @@ class FindPreviousSuccessBuildMixin():
                 defer.returnValue((PreviousBuildStatus.Found, prevBuildRequest))
 
         else: # Custom merge function assigned
-            log.msg("[brid: %d] is searcing for previous successful build with merge function" % build.requests[0].id)
+            log.msg("[brid: %d] is searching for previous successful build with merge function" % build.requests[0].id)
             prevBuildRequests = yield master.db.buildrequests \
                 .getBuildRequestsBySourcestamps(buildername=build.builder.config.name,
                                                 sourcestamps = build_sourcestamps)
