@@ -456,7 +456,7 @@ class _BuildStepFactory(util.ComparableMixin):
     def buildStep(self):
         try:
             return self.factory(*self.args, **self.kwargs)
-        except:
+        except Exception:
             log.msg("error while creating step, factory=%s, args=%s, kwargs=%s"
                     % (self.factory, self.args, self.kwargs))
             raise
@@ -708,7 +708,7 @@ class BuildStep(object, properties.PropertiesMixin):
                 result = yield defer.maybeDeferred(self.start)
                 if result == SKIPPED:
                     doStep = False
-        except:
+        except Exception:
             log.msg("BuildStep.startStep exception in .start")
             self.failed(Failure())
 
