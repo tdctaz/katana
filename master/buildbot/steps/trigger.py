@@ -166,7 +166,7 @@ class Trigger(ResumeBuild):
         dl = self._triggerSchedulers(triggered_schedulers)
 
         if self.waitForFinish:
-            rclist = yield defer.DeferredList(dl, consumeErrors=True)
+            rclist = yield defer.DeferredList(dl, consumeErrors=False)
         else:
             # do something to handle errors
             for d in dl:
