@@ -16,6 +16,7 @@
 from buildbot import config
 from buildbot.process.buildstep import LoggingBuildStep
 from buildbot.steps.trigger import Trigger
+from buildbot.process.properties import Properties
 
 class PartitionTrigger(Trigger):
     name = "PartitionTrigger"
@@ -60,6 +61,13 @@ class PartitionTrigger(Trigger):
         for key, value in partitionProperties.iteritems():
             propertiesToSetForPartition.setProperty(key, value, "PartitionTrigger")
         return propertiesToSetForPartition
+
+    def createTriggerProperties(self):
+        # make a new properties object from a dict rendered by the old
+        # properties object
+        trigger_properties = Properties()
+        trigger_properties.update(self.set_properties, "Trigger")
+        return trigger_properties
 
     def finished(self, results):
         from buildbot.status.results import SUCCESS, RESUME, DEPENDENCY_FAILURE, SKIPPED
