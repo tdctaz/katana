@@ -412,8 +412,8 @@ class BaseScheduler(service.MultiService, ComparableMixin, StateMixin, ScheduleO
                                                           triggeredbybrid)
 
                 if brids and brids.keys() == builderNames:
+                    log.msg("Resuing existing buildrequest %s for trigger by %s" % (brids, triggeredbybrid))
                     defer.returnValue((bsid, brids))
-                    return
 
         if sourcestamps is None:
             sourcestamps = {}
