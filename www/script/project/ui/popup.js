@@ -363,7 +363,8 @@ define(function (require) {
                 openPopup();
             });
         },
-        initRunBuild: function (customBuildElem, instantBuildElem, redirectToBuilder) {
+
+        initRunBuildPopup: function (customBuildElem, instantBuildElem, redirectToBuilder) {
             var $customBuild = $(customBuildElem),
                 $instantBuild = $(instantBuildElem);
 
@@ -372,14 +373,20 @@ define(function (require) {
                 return;
             }
 
-            function openPopup(instantBuild) {
-                var builderURL = $customBuild.attr('data-builder-url'),
-                    dataReturnPage = $customBuild.attr('data-return-page'),
-                    builderName = $customBuild.attr('data-builder-name'),
-                    title = $customBuild.attr('data-popup-title'),
-                    url = location.protocol + "//" + location.host + "/forms/forceBuild",
-                    urlParams = helpers.codebasesFromURL({builder_url: builderURL, builder_name: builderName, return_page: dataReturnPage});
+            var builderURL = $customBuild.attr('data-builder-url'),
+                dataReturnPage = $customBuild.attr('data-return-page'),
+                builderName = $customBuild.attr('data-builder-name'),
+                title = $customBuild.attr('data-popup-title'),
+                url = location.protocol + "//" + location.host + "/forms/forceBuild",
+                urlParams = helpers.codebasesFromURL({builder_url: builderURL, builder_name: builderName, return_page: dataReturnPage});
 
+            popup.initBuildForm($customBuild, false, builderURL, dataReturnPage, builderName, title, url, urlParams, redirectToBuilder);
+            popup.initBuildForm($instantBuild, true, builderURL, dataReturnPage, builderName, title, url, urlParams, redirectToBuilder);
+        },
+        initBuildForm: function (buildButton, automaticSubmit, builderURL, dataReturnPage, builderName, title, url, urlParams, redirectToBuilder) {
+            var $buildButton = $(buildButton);
+
+            function openPopup(automaticSubmit) {
 
                 $("#preloader").preloader("showPreloader");
 
@@ -457,7 +464,7 @@ define(function (require) {
                                         minimumResultsForSearch: -1
                                     });
 
-                                    if (instantBuild) {
+                                    if (automaticSubmit) {
                                         $form.ajaxSubmit(formOptions);
                                     }
                                 });
@@ -465,7 +472,7 @@ define(function (require) {
                         });
 
                         $body.append($popup);
-                        if (!instantBuild) {
+                        if (!automaticSubmit) {
                             $popup.showPopup();
                         }
                     })
@@ -477,14 +484,9 @@ define(function (require) {
                     });
             }
 
-            $customBuild.bind("click.katana", function (event) {
+            $buildButton.bind("click.katana", function (event) {
                 event.preventDefault();
-                openPopup(false);
-            });
-
-            $instantBuild.bind("click.katana", function (event) {
-                event.preventDefault();
-                openPopup(true);
+                openPopup(automaticSubmit);
             });
         },
         initArtifacts: function (artifactList, artifactElem) {
