@@ -199,6 +199,7 @@ define(function (require) {
             // Display the codebases form in a popup
             popup.initCodebaseBranchesPopup($("#codebasesBtn"));
         },
+
         initJSONPopup: function (jsonPopupElem, data) {
             var $jsonPopupElem = $(jsonPopupElem);
 
@@ -217,6 +218,7 @@ define(function (require) {
                 }));
             });
         },
+
         initCodebaseBranchesPopup: function (codebaseElem) {
             var $codebaseElem = $(codebaseElem),
                 codebasesURL = $codebaseElem.attr("data-codebases-url");
@@ -254,6 +256,7 @@ define(function (require) {
                     });
             });
         },
+
         initSlaveBuildersPopup: function initSlaveBuildersPopup(jsonPopupElem, slaveName) {
             var $jsonPopupElem = $(jsonPopupElem),
                 url = "/json/slaves/{0}/builders".format(slaveName);
@@ -290,6 +293,7 @@ define(function (require) {
                 openPopup();
             });
         },
+
         initPendingPopup: function initPendingPopup(pendingElem) {
             var $pendingElem = $(pendingElem),
                 builder_name = encodeURIComponent($pendingElem.attr('data-builderName')),
@@ -384,6 +388,7 @@ define(function (require) {
             popup.initBuildForm($instantBuild, true, builderURL, dataReturnPage, builderName, title, url, urlParams, redirectToBuilder);
         },
         initBuildForm: function (buildButton, automaticSubmit, builderURL, dataReturnPage, builderName, title, url, urlParams, redirectToBuilder) {
+
             var $buildButton = $(buildButton);
 
             function openPopup(automaticSubmit) {
@@ -489,6 +494,7 @@ define(function (require) {
                 openPopup(automaticSubmit);
             });
         },
+
         initArtifacts: function (artifactList, artifactElem) {
             var $artifactElem = $(artifactElem);
 

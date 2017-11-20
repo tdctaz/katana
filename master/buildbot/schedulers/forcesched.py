@@ -40,7 +40,7 @@ class BaseParameter(object, ComparableMixin):
     required = False
     multiple = False
     regex = None
-    debug=True
+    debug = True
     hide = False
 
     compare_attrs = ('name', 'label', 'type', 'default', 'required', 'multiple', 'regex', 'debug', 'hide')
