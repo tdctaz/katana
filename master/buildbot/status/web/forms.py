@@ -69,8 +69,10 @@ class BuildDialogPage(HtmlResource):
             if not isinstance(return_page, basestring):
                 return_page = args['return_page'][0]
 
-        # TODO: This is wrong and buggy
-        if len(url_parts) > 0 and len(return_page) > 0:
+        if not return_page:
+            return return_page
+
+        if len(url_parts) > 0 and url_parts[4]:
             return_page = "&returnpage={0}".format(return_page)
         else:
             return_page = "?returnpage={0}".format(return_page)
