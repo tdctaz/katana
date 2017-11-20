@@ -196,22 +196,27 @@ def buildForcePropertyName(scheduler, field):
 
 def buildForceContextForField(req, default_props, sch, field, master, buildername):
     pname = buildForcePropertyName(sch, field)
-    if "list" in field.type:
-        choices = field.getChoices(master, sch, buildername)
-        if choices:
-            default = choices[0]
-        default_props[pname+".choices"] = choices
-            
-    default = req.args.get(pname, [default])[0]
-    elif isinstance(default, unicode):
-        # filter out unicode chars, and html stuff
-        default = html.escape(default.encode('utf-8','ignore'))
-    
-    default_props[pname] = default
-        
+    default = req.args.get(pname, [field.default])[0]
+
+    buildForceContextForSingleFieldWithValue(default_props, sch, field, master, buildername, default)
+
     if "nested" in field.type:
         for subfield in field.fields:
             buildForceContextForField(req, default_props, sch, subfield, master, buildername)
+
+def buildForceContextForSingleFieldWithValue(default_props, scheduler, field, master, builderName, value):
+    pname = buildForcePropertyName(scheduler, field)
+
+    if "list" in field.type:
+        choices = field.getChoices(master, scheduler, builderName)
+        if choices:
+            default = choices[0]
+        default_props[pname+".choices"] = choices
+    elif isinstance(value, unicode):
+        # filter out unicode chars, and html stuff
+        value = html.escape(value.encode('utf-8','ignore'))
+    
+    default_props[pname] = value
 
 def buildForceContext(cxt, req, master, buildername=None):
     force_schedulers = {}
