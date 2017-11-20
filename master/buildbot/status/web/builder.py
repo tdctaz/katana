@@ -191,11 +191,11 @@ class ForceBuildActionResource(ForceAction):
         # send the user back to the builder page
         defer.returnValue(path_to_return)
 
+def buildForcePropertyName(scheduler, field):
+    return "%s.%s"%(scheduler.name, field.fullName)
+
 def buildForceContextForField(req, default_props, sch, field, master, buildername):
-    pname = "%s.%s"%(sch.name, field.fullName)
-    
-    default = field.default
-    
+    pname = buildForcePropertyName(sch, field)
     if "list" in field.type:
         choices = field.getChoices(master, sch, buildername)
         if choices:
