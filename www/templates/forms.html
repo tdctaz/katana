@@ -104,8 +104,10 @@
         <span title="This will be filled out automatically if a build is triggered as a dependency. Otherwise, you can write a reason here for why you are requesting the build (this information will show up on the build details page)." class="question-icon tooltip">
         </span>
       {% endif %}
+      <input type='text' size='{{f.size}}'  name='{{f.fullName}}' value='{{default_props[sch.name+"."+f.fullName]}}' {{ f.readonly and "disabled" or ""}} />
+      {% if f.readonly %}
+        <input type="hidden" name="{{f.fullName}}" value='{{default_props[sch.name+"."+f.fullName]}}' />
       {% endif %}
-       <input type='text' size='{{f.size}}'  name='{{f.fullName}}' value='{{default_props[sch.name+"."+f.fullName]}}' />
 
     {% elif 'Force Rebuild' in f.label%}
       <label class="display-flex">
@@ -125,23 +127,32 @@
 
     {% elif 'bool' in f.type %}
       <label class="display-flex">
-        <input type='checkbox' name='checkbox' value='{{f.fullName}}' {{ default_props[sch.name+"."+f.fullName] and "checked" or ""}} />
+        <input type='checkbox' name='checkbox' value='{{f.fullName}}' {{ default_props[sch.name+"."+f.fullName] and "checked" or ""}} {{ f.readonly and "disabled readonly" or ""}} />
         <span class="label">{{f.label}}</span>
         {% if f.tooltip %}<span title='{{f.tooltip}}' class="tooltip question-icon"></span>{% endif %}
+        {% if f.readonly %}
+          <input type="hidden" name="{{f.fullName}}" value='{{default_props[sch.name+"."+f.fullName]}}' />
+        {% endif %}
       </label>
 
     {% elif 'textarea' in f.type %}
       <span class="label">{{f.label}}</span>
-       <textarea name='{{f.fullName}}' rows={{f.rows}} cols={{f.cols}}>{{default_props[sch.name+"."+f.fullName]}}</textarea>
+      <textarea name='{{f.fullName}}' rows={{f.rows}} cols={{f.cols}} {{ f.readonly and "disabled" or ""}}>{{default_props[sch.name+"."+f.fullName]}}</textarea>
+      {% if f.readonly %}
+        <input type="hidden" name="{{f.fullName}}" value='{{default_props[sch.name+"."+f.fullName]}}' />
+      {% endif %}
 
     {% elif 'list' in f.type %}
       <span class="label">{{f.label}}</span>
       <span class="select">
-            <select name='{{f.fullName}}' {{ f.multiple and "multiple" or ""}}>
+        <select name='{{f.fullName}}' {{ f.multiple and "multiple" or ""}} {{ f.readonly and "disabled" or ""}}>
           {% for c in f.choices %}
             <option {{(c in default_props[sch.name+"."+f.fullName]) and "selected" or ""}}>{{c}}</option>
           {% endfor %}
         </select>
+        {% if f.readonly %}
+          <input type="hidden" name="{{f.fullName}}" value='{{default_props[sch.name+"."+f.fullName]}}' />
+        {% endif %}
       </span>
 
     {% elif 'nested' in f.type %}

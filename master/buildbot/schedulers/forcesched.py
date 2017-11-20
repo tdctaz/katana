@@ -41,6 +41,7 @@ class BaseParameter(object, ComparableMixin):
     multiple = False
     regex = None
     debug = True
+    readonly = False
     hide = False
 
     compare_attrs = ('name', 'label', 'type', 'default', 'required', 'multiple', 'regex', 'debug', 'hide')
