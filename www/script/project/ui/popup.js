@@ -388,6 +388,25 @@ define(function (require) {
             popup.initBuildForm($instantBuild, true, builderURL, dataReturnPage, title, url, urlParams, redirectToBuilder);
         },
 
+        initRebuildPopup: function (rebuildElem, redirectToBuilder) {
+            var $rebuildElem = $(rebuildElem);
+
+            if ($rebuildElem.length === 0) {
+                //Bailing early as we didn't find our elements
+                return;
+            }
+
+            var builderURL = $rebuildElem.attr('data-builder-url'),
+                dataReturnPage = $rebuildElem.attr('data-return-page'),
+                builderName = $rebuildElem.attr('data-builder-name'),
+                buildNumber = $rebuildElem.attr('data-build-number'),
+                title = $rebuildElem.attr('data-popup-title'),
+                url = location.protocol + "//" + location.host + "/forms/rebuild",
+                urlParams = helpers.codebasesFromURL({builder_url: builderURL, builder_name: builderName, build_number: buildNumber, return_page: dataReturnPage});
+
+            popup.initBuildForm($rebuildElem, false, builderURL, dataReturnPage, title, url, urlParams, redirectToBuilder);
+        },
+
         initBuildForm: function (buildButton, automaticSubmit, builderURL, dataReturnPage, title, url, urlParams, redirectToBuilder) {
             var $buildButton = $(buildButton);
 

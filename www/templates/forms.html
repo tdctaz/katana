@@ -295,10 +295,8 @@
   </form>
 {% endmacro %}
 
-{% macro rebuild_build(rebuild_url, authz, ss, builderName, url) %}
+{% macro rebuild_build(authz, ss, builderName, buildNumber, url) %}
 <div class="forms-inline">
- <form id="buildForm" method="post" action="{{ rebuild_url }}&property1name=force_rebuild&property1value=True" class="command rebuild">
-
   {% if on_all %}
     <p>To force a build on <strong>all Builders</strong>, fill out the following fields
       and click the 'Force Build' button</p>
@@ -306,13 +304,10 @@
     <p>To force a rebuild with the same source revisions and parameters used in this build,
       click the 'Rebuild' button.</p>
   {% endif %}
-     
-     <input class="full-name-js" type='hidden' name='comments' />
-     <input class="grey-btn" type="submit" value="Rebuild" />
-   
- </form>
 
   <form method="post" action="#" class="rebuild">
+    <input type="button" class="custom-rebuild grey-btn" value="Rebuild" title="Rebuild" data-popup-title="Rerun Build" data-build-number="{{buildNumber}}" data-builder-name="{{builderName}}" data-builder-url="{{url}}" data-return-page="builders_json">
+
     <input type="button" class="instant-build grey-btn" value="Build Latest" title="Run build at latest changes">
     <input type="button" class="custom-build grey-btn" value="Custom Build" title="Run custom build" data-popup-title="Run custom build" data-builder-name="{{builderName}}" data-builder-url="{{url}}" data-return-page="builders_json">
   </form>
