@@ -80,7 +80,10 @@
   {% if f and (f.fullName != "username" or not authz.authenticated(request)) %}
     <div class="{% for subtype in f.type %} force-{{subtype}}{%endfor%}"{% if f.name %} id="force-{{sch.name}}-{{f.fullName}}"{% endif %}>
 
-    {% if f.readonly and (default_props[sch.name+"."+f.fullName] is none or default_props[sch.name+"."+f.fullName] == "" or default_props[sch.name+"."+f.fullName] == false) %}
+    {% if f.readonly and (
+        not default_props[sch.name+"."+f.fullName]
+        and default_props[sch.name+"."+f.fullName] != 0
+      ) %}
       <!-- {{f.fullName}} has no value and is readonly -->
 
     {% elif f.hide %}
