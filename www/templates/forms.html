@@ -77,9 +77,12 @@
 {% endmacro %}
 
 {% macro force_build_scheduler_parameter(f, authz, request, sch, default_props) %}
-    {% if f and not f.hide and (f.fullName != "username" or not authz.authenticated(request)) %}
-
+  {% if f and (f.fullName != "username" or not authz.authenticated(request)) %}
     <div class="{% for subtype in f.type %} force-{{subtype}}{%endfor%}"{% if f.name %} id="force-{{sch.name}}-{{f.fullName}}"{% endif %}>
+
+    {% if f.hide %}
+      <input type="hidden" name="{{f.fullName}}" value='{{default_props[sch.name+"."+f.fullName]}}' />
+
     {% elif f.fullName and 'username' in f.fullName %}
       <span class="label">{{f.label}}</span>
       <input type='text' size='{{f.size}}' name="usernamedisabled" id="usernameDisabled" disabled />
@@ -106,7 +109,7 @@
 
     {% elif 'Force Rebuild' in f.label%}
       <label class="display-flex">
-          <input type='checkbox' name='checkbox' value='{{f.fullName}}' {{default_props[sch.name+"."+f.fullName]}} />
+        <input type='checkbox' name='checkbox' value='{{f.fullName}}' {{ default_props[sch.name+"."+f.fullName] and "checked" or ""}} />
         <span class="label">{{f.label}}</span>
         <span title="Checking this box will force the build to be rebuilt, regardless of whether or not there is a previous successful build at the same revision. Dependencies will not be rebuilt if a suitable build is available.  Should be selected in most cases." class="tooltip question-icon">
         </span>
@@ -114,7 +117,7 @@
 
     {% elif 'Force Chain Rebuild' in f.label%}
       <label class="display-flex">
-         <input type='checkbox' name='checkbox' value='{{f.fullName}}' {{default_props[sch.name+"."+f.fullName]}} />
+        <input type='checkbox' name='checkbox' value='{{f.fullName}}' {{ default_props[sch.name+"."+f.fullName] and "checked" or ""}} />
         <span class="label">{{f.label}}</span>
         <span title="Checking this box will force the build to be rebuilt, regardless of whether or not there is a previous successful build at the same revision. If the build triggers dependencies, those will also be rebuilt." class="tooltip question-icon">
         </span>
@@ -122,7 +125,7 @@
 
     {% elif 'bool' in f.type %}
       <label class="display-flex">
-        <input type='checkbox' name='checkbox' value='{{f.fullName}}' {{default_props[sch.name+"."+f.fullName]}} />
+        <input type='checkbox' name='checkbox' value='{{f.fullName}}' {{ default_props[sch.name+"."+f.fullName] and "checked" or ""}} />
         <span class="label">{{f.label}}</span>
         {% if f.tooltip %}<span title='{{f.tooltip}}' class="tooltip question-icon"></span>{% endif %}
       </label>

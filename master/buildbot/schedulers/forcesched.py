@@ -175,7 +175,8 @@ class BooleanParameter(BaseParameter):
     type = ["bool"]
 
     def getFromKwargs(self, kwargs):
-        return kwargs.get(self.fullName, None) == [True]
+        value = kwargs.get(self.fullName, None)
+        return value == [True] or value == ['True']
 
 
 class UserNameParameter(StringParameter):
