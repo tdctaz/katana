@@ -384,11 +384,11 @@ define(function (require) {
                 url = location.protocol + "//" + location.host + "/forms/forceBuild",
                 urlParams = helpers.codebasesFromURL({builder_url: builderURL, builder_name: builderName, return_page: dataReturnPage});
 
-            popup.initBuildForm($customBuild, false, builderURL, dataReturnPage, builderName, title, url, urlParams, redirectToBuilder);
-            popup.initBuildForm($instantBuild, true, builderURL, dataReturnPage, builderName, title, url, urlParams, redirectToBuilder);
+            popup.initBuildForm($customBuild, false, builderURL, dataReturnPage, title, url, urlParams, redirectToBuilder);
+            popup.initBuildForm($instantBuild, true, builderURL, dataReturnPage, title, url, urlParams, redirectToBuilder);
         },
-        initBuildForm: function (buildButton, automaticSubmit, builderURL, dataReturnPage, builderName, title, url, urlParams, redirectToBuilder) {
 
+        initBuildForm: function (buildButton, automaticSubmit, builderURL, dataReturnPage, title, url, urlParams, redirectToBuilder) {
             var $buildButton = $(buildButton);
 
             function openPopup(automaticSubmit) {
