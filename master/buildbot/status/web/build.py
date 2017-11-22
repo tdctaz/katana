@@ -425,8 +425,6 @@ class StatusResourceBuild(HtmlResource):
             return self.cancelBuild(req)
         if path == "stopchain":
             return self.stopchain(req)
-        if path == "rebuild":
-            return self.rebuild(req)
         if path == "steps":
             return StepsResource(self.build_status)
         if path == "tests":
