@@ -14,7 +14,7 @@
 # Copyright Buildbot Team Members
 from operator import attrgetter
 import urllib
-from urlparse import urlunparse, urlparse
+from urlparse import urlunparse, urlparse, urljoin
 from twisted.internet import defer
 from twisted.web._responses import INTERNAL_SERVER_ERROR
 from twisted.web.resource import ErrorPage
@@ -62,28 +62,21 @@ class BuildDialogPage(HtmlResource):
         isAdmin = yield authz.getUserAttr(request, 'is_admin', 0)
         defer.returnValue(isAdmin)
 
-    def _getReturnPage(self, args, url_parts):
-        return_page = ""
-        if args.has_key("return_page"):
-            return_page = args['return_page']
-            if not isinstance(return_page, basestring):
-                return_page = args['return_page'][0]
+    def _getReturnPage(self, args, builderUrl):
+        return_page = args.get('return_page', '')
+        if not isinstance(return_page, basestring):
+            return_page = return_page[0]
 
-        if not return_page:
-            return return_page
-
-        if len(url_parts) > 0 and url_parts[4]:
-            return_page = "&returnpage={0}".format(return_page)
+        if builderUrl.query:
+            return "&returnpage={0}".format(return_page)
         else:
-            return_page = "?returnpage={0}".format(return_page)
+            return "?returnpage={0}".format(return_page)
 
-        return return_page
-
-    def _getForceUrl(self, return_page, url_parts):
-        url_parts[2] += "/force"
-        url_parts[4] += return_page
-        force_url = urlunparse(url_parts)
-        return force_url
+    def _getForceUrl(self, return_page, builderUrl):
+        path = urljoin(builderUrl.path, 'force')
+        query = builderUrl.query + return_page
+        forceUrl = builderUrl._replace(path=path, query=query)
+        return urlunparse(forceUrl)
 
 
 class ForceBuildDialogPage(BuildDialogPage):
@@ -109,9 +102,9 @@ class ForceBuildDialogPage(BuildDialogPage):
 
             buildForceContext(cxt, request, buildMaster, builder_status.getName())
 
-            url_parts = list(urlparse(args['builder_url'][0]))
-            cxt['return_page'] = self._getReturnPage(args, url_parts)
-            cxt['force_url'] = self._getForceUrl(cxt['return_page'], url_parts)
+            builderUrl = urlparse(args['builder_url'][0])
+            cxt['return_page'] = self._getReturnPage(args, builderUrl)
+            cxt['force_url'] = self._getForceUrl(cxt['return_page'], builderUrl)
 
             cxt['is_admin'] = yield self._getIsAdmin(request)
             cxt['rt_update'] = args
@@ -151,9 +144,9 @@ class RebuildDialogPage(BuildDialogPage, HtmlResource):
             buildForceContext(cxt, request, buildMaster, builder_status.getName())
             self._overrideForceContext(request, cxt, build, buildMaster, builderName)
 
-            url_parts = list(urlparse(args['builder_url'][0]))
-            cxt['return_page'] = self._getReturnPage(args, url_parts)
-            cxt['force_url'] = self._getForceUrl(cxt['return_page'], url_parts)
+            builderUrl = urlparse(args['builder_url'][0])
+            cxt['return_page'] = self._getReturnPage(args, builderUrl)
+            cxt['force_url'] = self._getForceUrl(cxt['return_page'], builderUrl)
 
             cxt['is_admin'] = yield self._getIsAdmin(request)
             cxt['rt_update'] = args
