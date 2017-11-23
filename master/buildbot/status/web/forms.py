@@ -154,7 +154,7 @@ class RebuildDialogPage(BuildDialogPage):
             page = ErrorPage(INTERNAL_SERVER_ERROR, "Missing parameters", "Not all parameters were given")
             defer.returnValue(page.render(request))
 
-    def _getSingleArgument(self, args, encoding, name, default = None):
+    def _getSingleArgument(self, args, encoding, name, default=None):
         if args.has_key(name) and len(args[name]) == 1:
             return self.decodeFromURL(args[name][0], encoding)
         return default
