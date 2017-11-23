@@ -39,6 +39,9 @@ class FormsKatanaResource(HtmlResource):
             return RebuildDialogPage()
 
 class BuildDialogPage(HtmlResource):
+    def decodeFromURL(self, value, encoding):
+        return urllib.unquote(value).decode(encoding)
+
     def _decodeArgs(self, request, encoding):
         args = request.args.copy()
         for name, argl in args.iteritems():
@@ -80,9 +83,6 @@ class BuildDialogPage(HtmlResource):
 class ForceBuildDialogPage(BuildDialogPage):
     pageTitle = "Force Build"
 
-    def decodeFromURL(self, value, encoding):
-        return urllib.unquote(value).decode(encoding)
-
     @defer.inlineCallbacks
     def content(self, request, cxt):
         status = self.getStatus(request)
@@ -117,9 +117,6 @@ class ForceBuildDialogPage(BuildDialogPage):
 
 class RebuildDialogPage(BuildDialogPage):
     pageTitle = "Rebuild"
-
-    def decodeFromURL(self, value, encoding):
-        return urllib.unquote(value).decode(encoding)
 
     @defer.inlineCallbacks
     def content(self, request, cxt):
