@@ -209,8 +209,8 @@ def buildForceContextForSingleFieldWithValue(default_props, scheduler, field, ma
 
     if "list" in field.type:
         choices = field.getChoices(master, scheduler, builderName)
-        if choices:
-            value = next((x for x in choices if x == value), choices[0])
+        if choices and value not in choices:
+            value = choices[0]
         default_props[pname+".choices"] = choices
     elif isinstance(value, unicode):
         # filter out unicode chars, and html stuff
