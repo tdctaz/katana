@@ -48,13 +48,11 @@ class BuildDialogPage(HtmlResource):
 
     def _getSlaves(self, builder_status):
         slaves = [s for s in builder_status.getSlaves() if s.isConnected()]
-        slaves = sorted(slaves, key=attrgetter('friendly_name'))
-        return slaves
+        return sorted(slaves, key=attrgetter('friendly_name'))
 
     def _getBranches(self, args, request):
         encoding = getRequestCharset(request)
-        branches = [b.decode(encoding) for b in args.get("branch", []) if b]
-        return branches
+        return [b.decode(encoding) for b in args.get("branch", []) if b]
 
     @defer.inlineCallbacks
     def _getIsAdmin(self, request):
