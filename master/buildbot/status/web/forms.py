@@ -115,7 +115,7 @@ class ForceBuildDialogPage(BuildDialogPage):
             page = ErrorPage(INTERNAL_SERVER_ERROR, "Missing parameters", "Not all parameters were given")
             defer.returnValue(page.render(request))
 
-class RebuildDialogPage(BuildDialogPage, HtmlResource):
+class RebuildDialogPage(BuildDialogPage):
     pageTitle = "Rebuild"
 
     def decodeFromURL(self, value, encoding):
