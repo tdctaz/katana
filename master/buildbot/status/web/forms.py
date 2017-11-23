@@ -170,21 +170,22 @@ class RebuildDialogPage(BuildDialogPage):
                 self._overrideForceContextForField(defaultProps, scheduler, subfield, build, buildMaster, builderName)
 
     def _overrideCodebaseSubfield(self, defaultProps, scheduler, field, buildMaster, builderName, name, value):
-        subfield = next((x for x in field.fields if x.name == name), None)
-        if not subfield:
-            return
-
-        buildForceContextForSingleFieldWithValue(defaultProps, scheduler, subfield, buildMaster, builderName, value)
+        for subfield in field.fields:
+            if subfield.name == name:
+                buildForceContextForSingleFieldWithValue(defaultProps, scheduler, subfield, buildMaster, builderName, value)
+                break
 
     def _overrideForceContextCodebase(self, defaultProps, scheduler, field, build, buildMaster, builderName):
-        source = next((x for x in build.sources if x.codebase == field.codebase), None)
-        if source is None or "nested" not in field.type:
+        if "nested" not in field.type:
             return
 
-        self._overrideCodebaseSubfield(defaultProps, scheduler, field, buildMaster, builderName, "project", source.project)
-        self._overrideCodebaseSubfield(defaultProps, scheduler, field, buildMaster, builderName, "branch", source.branch)
-        self._overrideCodebaseSubfield(defaultProps, scheduler, field, buildMaster, builderName, "revision", source.revision)
-        self._overrideCodebaseSubfield(defaultProps, scheduler, field, buildMaster, builderName, "repository", source.repository)
+        for source in build.sources:
+            if source.codebase == field.codebase:
+                self._overrideCodebaseSubfield(defaultProps, scheduler, field, buildMaster, builderName, "project", source.project)
+                self._overrideCodebaseSubfield(defaultProps, scheduler, field, buildMaster, builderName, "branch", source.branch)
+                self._overrideCodebaseSubfield(defaultProps, scheduler, field, buildMaster, builderName, "revision", source.revision)
+                self._overrideCodebaseSubfield(defaultProps, scheduler, field, buildMaster, builderName, "repository", source.repository)
+                break
 
     def _overrideForceContext(self, request, cxt, build, buildMaster, builderName):
 
