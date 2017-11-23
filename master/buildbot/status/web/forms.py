@@ -43,7 +43,7 @@ class BuildDialogPage(HtmlResource):
         args = request.args.copy()
         for name, argl in args.iteritems():
             if '_branch' in name:
-                args[name] = [ self.decodeFromURL(arg, encoding) for arg in argl ]
+                args[name] = [self.decodeFromURL(arg, encoding) for arg in argl]
         return args
 
     def _getSlaves(self, builder_status):
