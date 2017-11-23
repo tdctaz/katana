@@ -42,9 +42,9 @@ class ForceAction(ActionResource):
         schedulername = req.args.get("forcescheduler", ["<unknown>"])[0]
         if schedulername == "<unknown>":
             try:
-                for sch in master.allSchedulers():
-                    if isinstance(sch, ForceScheduler) and builderNames[0] in sch.builderNames:
-                        schedulername = sch.name
+                for scheduler in master.allSchedulers():
+                    if isinstance(scheduler, ForceScheduler) and builderNames[0] in scheduler.builderNames:
+                        schedulername = scheduler.name
                         break
                 else:
                     raise RuntimeError("Could not find force scheduler")
@@ -64,10 +64,10 @@ class ForceAction(ActionResource):
            else:
                args[name] = [ arg.decode(encoding) for arg in argl ]
 
-        for sch in master.allSchedulers():
-            if schedulername == sch.name:
+        for scheduler in master.allSchedulers():
+            if schedulername == scheduler.name:
                 try:
-                    yield sch.force(owner, builderNames, **args)
+                    yield scheduler.force(owner, builderNames, **args)
                     msg = ""
                 except ValidationError, e:
                     msg = html.escape(e.message.encode('ascii','ignore'))
@@ -194,15 +194,15 @@ class ForceBuildActionResource(ForceAction):
 def buildForcePropertyName(scheduler, field):
     return "%s.%s"%(scheduler.name, field.fullName)
 
-def buildForceContextForField(req, default_props, sch, field, master, buildername):
-    pname = buildForcePropertyName(sch, field)
+def buildForceContextForField(req, default_props, scheduler, field, master, buildername):
+    pname = buildForcePropertyName(scheduler, field)
     default = req.args.get(pname, [field.default])[0]
 
-    buildForceContextForSingleFieldWithValue(default_props, sch, field, master, buildername, default)
+    buildForceContextForSingleFieldWithValue(default_props, scheduler, field, master, buildername, default)
 
     if "nested" in field.type:
         for subfield in field.fields:
-            buildForceContextForField(req, default_props, sch, subfield, master, buildername)
+            buildForceContextForField(req, default_props, scheduler, subfield, master, buildername)
 
 def buildForceContextForSingleFieldWithValue(default_props, scheduler, field, master, builderName, value):
     pname = buildForcePropertyName(scheduler, field)
@@ -221,11 +221,11 @@ def buildForceContextForSingleFieldWithValue(default_props, scheduler, field, ma
 def buildForceContext(cxt, req, master, buildername=None):
     force_schedulers = {}
     default_props = collections.defaultdict(str)
-    for sch in master.allSchedulers():
-        if isinstance(sch, ForceScheduler) and (buildername is None or(buildername in sch.builderNames)):
-            force_schedulers[sch.name] = sch
-            for field in sch.all_fields:
-                buildForceContextForField(req, default_props, sch, field, master, buildername)
+    for scheduler in master.allSchedulers():
+        if isinstance(scheduler, ForceScheduler) and (buildername is None or(buildername in scheduler.builderNames)):
+            force_schedulers[scheduler.name] = scheduler
+            for field in scheduler.all_fields:
+                buildForceContextForField(req, default_props, scheduler, field, master, buildername)
                 
     cxt['force_schedulers'] = force_schedulers
     cxt['default_props'] = default_props
