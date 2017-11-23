@@ -91,7 +91,7 @@ class ForceBuildDialogPage(BuildDialogPage):
 
         #Get builder info
         builder_status = None
-        if args.has_key("builder_name") and len(args["builder_name"]) == 1:
+        if "builder_name" in args and len(args["builder_name"]) == 1:
             builder_status = status.getBuilder(self.decodeFromURL(args["builder_name"][0], encoding))
             buildMaster = self.getBuildmaster(request)
 
@@ -155,7 +155,7 @@ class RebuildDialogPage(BuildDialogPage):
             defer.returnValue(page.render(request))
 
     def _getSingleArgument(self, args, encoding, name, default=None):
-        if args.has_key(name) and len(args[name]) == 1:
+        if name in args and len(args[name]) == 1:
             return self.decodeFromURL(args[name][0], encoding)
         return default
 
