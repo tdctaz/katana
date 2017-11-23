@@ -125,12 +125,12 @@ class RebuildDialogPage(BuildDialogPage):
         args = self._decodeArgs(request, encoding)
 
         # Get build info
-        buildNumber = int(self._getSingleArgument(args, encoding, "build_number"))
+        buildNumber = self._getSingleArgument(args, encoding, "build_number")
         builderName = self._getSingleArgument(args, encoding, "builder_name")
 
-        if buildNumber != None and builderName != None:
+        if buildNumber is not None and builderName is not None:
             builder_status = status.getBuilder(builderName)
-            build = builder_status.getBuild(buildNumber)
+            build = builder_status.getBuild(int(buildNumber))
             buildMaster = self.getBuildmaster(request)
 
             cxt['slaves'] = self._getSlaves(builder_status)
