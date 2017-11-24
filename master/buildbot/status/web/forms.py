@@ -19,9 +19,8 @@ from twisted.internet import defer
 from twisted.web._responses import INTERNAL_SERVER_ERROR
 from twisted.web.resource import ErrorPage
 
-from buildbot.status.web.builder import buildForceContext, buildForceContextForSingleFieldWithValue, \
-    buildForcePropertyName
-from buildbot.status.web.base import HtmlResource, getCodebasesArg, getRequestCharset
+from buildbot.status.web.builder import buildForceContext, buildForceContextForSingleFieldWithValue
+from buildbot.status.web.base import HtmlResource, getRequestCharset
 
 
 class FormsKatanaResource(HtmlResource):
