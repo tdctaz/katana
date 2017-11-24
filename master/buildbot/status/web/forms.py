@@ -14,7 +14,7 @@
 # Copyright Buildbot Team Members
 from operator import attrgetter
 import urllib
-from urlparse import urlunparse, urlparse, urljoin
+from urlparse import urlunparse, urlparse
 from twisted.internet import defer
 from twisted.web._responses import INTERNAL_SERVER_ERROR
 from twisted.web.resource import ErrorPage
@@ -74,7 +74,7 @@ class BuildDialogPage(HtmlResource):
             return "?returnpage={0}".format(return_page)
 
     def _getForceUrl(self, return_page, builderUrl):
-        path = urljoin(builderUrl.path, 'force')
+        path = builderUrl.path + '/force'
         query = builderUrl.query + return_page
         forceUrl = builderUrl._replace(path=path, query=query)
         return urlunparse(forceUrl)
