@@ -41,20 +41,20 @@ class BuildDialogPage(HtmlResource):
     def decodeFromURL(self, value, encoding):
         return urllib.unquote(value).decode(encoding)
 
-    def _decodeArgs(self, request, encoding):
-        args = request.args.copy()
-        for name, argl in args.iteritems():
+    def _decodeRequestArgs(self, request, encoding):
+        requestArgs = request.requestArgs.copy()
+        for name, argl in requestArgs.iteritems():
             if '_branch' in name:
-                args[name] = [self.decodeFromURL(arg, encoding) for arg in argl]
-        return args
+                requestArgs[name] = [self.decodeFromURL(arg, encoding) for arg in argl]
+        return requestArgs
 
     def _getSlaves(self, builder_status):
         slaves = [s for s in builder_status.getSlaves() if s.isConnected()]
         return sorted(slaves, key=attrgetter('friendly_name'))
 
-    def _getBranches(self, args, request):
+    def _getBranches(self, requestArgs, request):
         encoding = getRequestCharset(request)
-        return [b.decode(encoding) for b in args.get("branch", []) if b]
+        return [b.decode(encoding) for b in requestArgs.get("branch", []) if b]
 
     @defer.inlineCallbacks
     def _getIsAdmin(self, request):
@@ -62,8 +62,8 @@ class BuildDialogPage(HtmlResource):
         isAdmin = yield authz.getUserAttr(request, 'is_admin', 0)
         defer.returnValue(isAdmin)
 
-    def _getReturnPage(self, args, builderUrl):
-        return_page = args.get('return_page', '')
+    def _getReturnPage(self, requestArgs, builderUrl):
+        return_page = requestArgs.get('return_page', '')
         if not isinstance(return_page, basestring):
             return_page = return_page[0]
 
@@ -86,26 +86,26 @@ class ForceBuildDialogPage(BuildDialogPage):
     def content(self, request, cxt):
         status = self.getStatus(request)
         encoding = getRequestCharset(request)
-        args = self._decodeArgs(request, encoding)
+        requestArgs = self._decodeRequestArgs(request, encoding)
 
         #Get builder info
         builder_status = None
-        if "builder_name" in args and len(args["builder_name"]) == 1:
-            builder_status = status.getBuilder(self.decodeFromURL(args["builder_name"][0], encoding))
+        if "builder_name" in requestArgs and len(requestArgs["builder_name"]) == 1:
+            builder_status = status.getBuilder(self.decodeFromURL(requestArgs["builder_name"][0], encoding))
             buildMaster = self.getBuildmaster(request)
 
             cxt['slaves'] = self._getSlaves(builder_status)
-            cxt['branches'] = self._getBranches(args, request)
+            cxt['branches'] = self._getBranches(requestArgs, request)
 
             buildForceContext(cxt, request, buildMaster, builder_status.getName())
 
-            builderUrl = urlparse(args['builder_url'][0])
-            cxt['return_page'] = self._getReturnPage(args, builderUrl)
+            builderUrl = urlparse(requestArgs['builder_url'][0])
+            cxt['return_page'] = self._getReturnPage(requestArgs, builderUrl)
             cxt['force_url'] = self._getForceUrl(cxt['return_page'], builderUrl)
 
             cxt['is_admin'] = yield self._getIsAdmin(request)
-            cxt['rt_update'] = args
-            request.args = args
+            cxt['rt_update'] = requestArgs
+            request.args = requestArgs
 
             template = request.site.buildbot_service.templates.get_template("force_build_dialog.html")
             defer.returnValue(template.render(**cxt))
@@ -121,11 +121,11 @@ class RebuildDialogPage(BuildDialogPage):
     def content(self, request, cxt):
         status = self.getStatus(request)
         encoding = getRequestCharset(request)
-        args = self._decodeArgs(request, encoding)
+        requestArgs = self._decodeRequestArgs(request, encoding)
 
         # Get build info
-        buildNumber = self._getSingleArgument(args, encoding, "build_number")
-        builderName = self._getSingleArgument(args, encoding, "builder_name")
+        buildNumber = self._getSingleArgument(requestArgs, encoding, "build_number")
+        builderName = self._getSingleArgument(requestArgs, encoding, "builder_name")
 
         if buildNumber is not None and builderName is not None:
             builder_status = status.getBuilder(builderName)
@@ -133,18 +133,18 @@ class RebuildDialogPage(BuildDialogPage):
             buildMaster = self.getBuildmaster(request)
 
             cxt['slaves'] = self._getSlaves(builder_status)
-            cxt['branches'] = self._getBranches(args, request)
+            cxt['branches'] = self._getBranches(requestArgs, request)
 
             buildForceContext(cxt, request, buildMaster, builder_status.getName())
             self._overrideForceContext(request, cxt, build, buildMaster, builderName)
 
-            builderUrl = urlparse(args['builder_url'][0])
-            cxt['return_page'] = self._getReturnPage(args, builderUrl)
+            builderUrl = urlparse(requestArgs['builder_url'][0])
+            cxt['return_page'] = self._getReturnPage(requestArgs, builderUrl)
             cxt['force_url'] = self._getForceUrl(cxt['return_page'], builderUrl)
 
             cxt['is_admin'] = yield self._getIsAdmin(request)
-            cxt['rt_update'] = args
-            request.args = args
+            cxt['rt_update'] = requestArgs
+            request.args = requestArgs
 
             template = request.site.buildbot_service.templates.get_template("force_build_dialog.html")
             defer.returnValue(template.render(**cxt))
@@ -153,9 +153,9 @@ class RebuildDialogPage(BuildDialogPage):
             page = ErrorPage(INTERNAL_SERVER_ERROR, "Missing parameters", "Not all parameters were given")
             defer.returnValue(page.render(request))
 
-    def _getSingleArgument(self, args, encoding, name, default=None):
-        if name in args and len(args[name]) == 1:
-            return self.decodeFromURL(args[name][0], encoding)
+    def _getSingleArgument(self, requestArgs, encoding, name, default=None):
+        if name in requestArgs and len(requestArgs[name]) == 1:
+            return self.decodeFromURL(requestArgs[name][0], encoding)
         return default
 
     def _overrideForceContextForField(self, defaultProps, scheduler, field, build, buildMaster, builderName):
