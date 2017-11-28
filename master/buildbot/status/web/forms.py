@@ -42,7 +42,7 @@ class BuildDialogPage(HtmlResource):
         return urllib.unquote(value).decode(encoding)
 
     def _decodeRequestArgs(self, request, encoding):
-        requestArgs = request.requestArgs.copy()
+        requestArgs = request.args.copy()
         for name, argl in requestArgs.iteritems():
             if '_branch' in name:
                 requestArgs[name] = [self.decodeFromURL(arg, encoding) for arg in argl]
