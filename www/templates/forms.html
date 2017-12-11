@@ -224,8 +224,8 @@
   <div class="general">
     <p class="form-message">Fill out revision information for all codebases (or leave all revision information blank to use the latest revision on the selected branches) and click the 'Run' button.</p>
 
-    <div class="force-text" id="force-{{ sch.name }}-slave">
     {% if slaves %}
+      <div class="force-text" id="force-{{ sch.name }}-slave">
         <div class="display-flex">
          <span class="label">Specify Slave</span>
             <span title="You can specify a build to run on a particular slave, or to run on all slaves. Leave set to 'Any Compatible' for most cases." class="tooltip question-icon">
@@ -242,9 +242,9 @@
                 {% endif %}
             {% endfor %}
         </select>
-        </div>
+      </div>
     {% endif %}
-        <div class="force-text">
+      <div class="force-text">
         <div class="display-flex">
             <span class="label">Priority</span>
             <span title="You can specify a the priority at which your build(s) should be ran."
@@ -259,7 +259,7 @@
             <option selected="selected" value="50">Medium (Default)</option>
             <option value="25">Low</option>
         </select>
-        </div>
+      </div>
 
     {% for f in sch.all_fields %}
       {{ force_build_scheduler_parameter(f, authz, request, sch, default_props) }}
